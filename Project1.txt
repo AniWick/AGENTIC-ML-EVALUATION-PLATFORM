@@ -1,0 +1,2647 @@
+Below is an implementation-ready architecture/design document. I’ve made it intentionally explicit about components, responsibilities, data flow, APIs, agent behavior, schemas, folder structure, and development phases, so you can paste it into another LLM and ask it to start building the project.
+
+Agentic ML Model & Dataset Evaluation Platform
+Design and Architecture Specification
+
+Document Version: 1.0
+Purpose: Implementation specification for an LLM/code-generation agent
+Primary LLM Runtime: Ollama
+Available Local Models: Phi-3 Mini and Llama 3.1
+Backend: Python
+Database / Project Memory: ChromaDB
+Primary Interface: Chatbot / conversational UI
+Architecture Style: Agentic tool-calling workflow
+
+1. Project Objective
+
+Build an agentic machine-learning evaluation platform where a user can:
+
+Upload an ML model.
+Upload a dataset.
+Ask questions or give objectives through a chatbot.
+Allow an AI agent to inspect the model and dataset.
+Automatically determine what operations are required.
+Evaluate the dataset and model.
+Detect problems such as:
+missing values
+class imbalance
+outliers
+incorrect feature types
+incompatible input shapes
+poor model performance
+robustness problems
+Apply appropriate data transformations when necessary.
+Re-run model evaluation after transformations.
+Compare the original and transformed results.
+Maintain experiment history.
+Generate a final natural-language evaluation report.
+
+The central design principle is:
+
+The model and dataset are the center of the workflow. The agent continuously decides what should happen to them based on the user's goal and the results of previous operations.
+
+The system must therefore behave as an agentic decision-making system, rather than a simple sequence of API calls.
+
+2. Core Architectural Principle
+
+The architecture must NOT be designed as:
+
+User
+  ↓
+API
+  ↓
+Function
+  ↓
+Result
+
+
+Instead, it must follow:
+
+USER GOAL
+    ↓
+AGENT
+    ↓
+UNDERSTAND OBJECTIVE
+    ↓
+INSPECT MODEL + DATASET
+    ↓
+SELECT TOOL
+    ↓
+EXECUTE TOOL
+    ↓
+OBSERVE RESULT
+    ↓
+REASON
+    ↓
+DECIDE NEXT ACTION
+    ↓
+SELECT NEXT TOOL
+    ↓
+EXECUTE
+    ↓
+OBSERVE
+    ↓
+REASON
+    ↓
+...
+    ↓
+SUFFICIENT RESULT?
+    ├── YES → GENERATE REPORT
+    │
+    └── NO → CONTINUE AGENT LOOP
+
+
+The agent is responsible for deciding what happens next.
+
+3. High-Level Architecture
+                           ┌────────────────────────┐
+                           │          USER          │
+                           │                        │
+                           │  Upload Model         │
+                           │  Upload Dataset       │
+                           │  Chat / Ask Questions │
+                           └───────────┬────────────┘
+                                       │
+                                       ▼
+                    ┌─────────────────────────────────┐
+                    │           API / BACKEND          │
+                    │                                 │
+                    │ Authentication                  │
+                    │ File Upload                     │
+                    │ Project Management               │
+                    │ Chat API                        │
+                    └───────────────┬─────────────────┘
+                                    │
+                                    ▼
+                    ┌─────────────────────────────────┐
+                    │          AGENT / PLANNER          │
+                    │                                 │
+                    │ Understand User Goal             │
+                    │ Inspect Current State            │
+                    │ Select Tool                      │
+                    │ Execute Tool                     │
+                    │ Observe Result                   │
+                    │ Decide Next Action               │
+                    └───────────────┬─────────────────┘
+                                    │
+                 ┌──────────────────┼──────────────────┐
+                 │                  │                  │
+                 ▼                  ▼                  ▼
+        ┌────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+        │ MODEL TOOLS    │ │ DATASET TOOLS   │ │ PROJECT MEMORY  │
+        │                │ │                 │ │                 │
+        │ Load Model     │ │ Load Dataset    │ │ ChromaDB        │
+        │ Validate       │ │ Inspect         │ │ Experiments     │
+        │ Predict        │ │ Profile         │ │ Reports         │
+        │ Evaluate      │ │ Transform       │ │ History         │
+        └───────┬────────┘ └────────┬────────┘ └────────┬────────┘
+                │                   │                   │
+                └───────────────────┼───────────────────┘
+                                    ▼
+                         ┌─────────────────────┐
+                         │     VALIDATION      │
+                         │                     │
+                         │ Model ↔ Dataset     │
+                         │ Input Shape         │
+                         │ Feature Types       │
+                         │ Labels / Target     │
+                         │ Framework           │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │     EVALUATION      │
+                         │                     │
+                         │ Performance         │
+                         │ Data Quality        │
+                         │ Robustness          │
+                         │ Transformation      │
+                         │ Impact              │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                       ┌─────────────────────────┐
+                       │    EVALUATION RESULTS   │
+                       │                         │
+                       │ Metrics                 │
+                       │ Problems                │
+                       │ Statistics              │
+                       │ Warnings                │
+                       │ Performance Changes     │
+                       └────────────┬────────────┘
+                                    │
+                                    ▼
+                       ┌─────────────────────────┐
+                       │     EVALUATION LLM      │
+                       │                         │
+                       │ Interpret results       │
+                       │ Identify weaknesses     │
+                       │ Explain findings        │
+                       │ Recommend actions       │
+                       │ Generate report         │
+                       └────────────┬────────────┘
+                                    │
+                                    ▼
+                              ┌────────────┐
+                              │   AGENT    │
+                              │  OBSERVES  │
+                              └─────┬──────┘
+                                    │
+                        ┌───────────┴────────────┐
+                        │                        │
+                  Sufficient?              Needs action?
+                        │                        │
+                        ▼                        ▼
+                     FINISH                TRANSFORMATION
+                                                 │
+                            ┌────────────────────┴──────────────────┐
+                            │                                       │
+                            ▼                                       ▼
+                  ┌──────────────────┐                   ┌──────────────────┐
+                  │ DATA IMPROVEMENT │                   │ DATA CORRUPTION  │
+                  │                  │                   │                  │
+                  │ Clean            │                   │ Gaussian Noise   │
+                  │ Scale            │                   │ Missing Values   │
+                  │ Outliers         │                   │ Outliers         │
+                  │ Balance Classes  │                   │ Label Noise      │
+                  └────────┬─────────┘                   └────────┬─────────┘
+                           │                                      │
+                           └────────────────┬─────────────────────┘
+                                            ▼
+                                  ┌────────────────────┐
+                                  │ TRANSFORMED DATASET│
+                                  └──────────┬─────────┘
+                                             │
+                                             ▼
+                                  ┌────────────────────┐
+                                  │ MODEL EVALUATION   │
+                                  └──────────┬─────────┘
+                                             │
+                                             ▼
+                                  ┌────────────────────┐
+                                  │ COMPARE RESULTS    │
+                                  │                    │
+                                  │ Before vs After    │
+                                  │ Metrics            │
+                                  │ Improvement        │
+                                  │ Degradation        │
+                                  └──────────┬─────────┘
+                                             │
+                                             ▼
+                                    EVALUATION LLM
+                                             │
+                                             ▼
+                                      FINAL REPORT
+                                             │
+                                             ▼
+                                        USER CHAT
+
+4. Main Components
+
+The system consists of the following major components.
+
+4.1 Frontend
+
+Responsibilities:
+
+Upload model
+Upload dataset
+Create/select project
+Start evaluation
+Chat with agent
+Display agent actions
+Display evaluation results
+Display experiment history
+Display before/after comparisons
+Display final report
+
+The frontend should NOT contain ML evaluation logic.
+
+5. Backend
+
+Recommended framework:
+
+FastAPI
+
+
+The backend provides REST APIs for:
+
+/projects
+/models
+/datasets
+/evaluations
+/experiments
+/chat
+/reports
+
+
+The backend coordinates the frontend, agent, ML tools, storage and database.
+
+6. Agent
+
+The agent is the most important component of the architecture.
+
+The agent should be implemented as a stateful loop.
+
+Agent responsibilities
+
+The agent must:
+
+Understand the user's goal.
+Inspect available project resources.
+Determine the current state.
+Select an appropriate tool.
+Execute the tool.
+Observe the tool result.
+Store the result.
+Reason about the result.
+Determine whether another action is necessary.
+Select the next action.
+Repeat until the objective is satisfied.
+Generate a final response/report.
+7. Local LLM Architecture
+
+Ollama will be used as the local model runtime.
+
+The system should support:
+
+Ollama
+ ├── Phi-3 Mini
+ └── Llama 3.1
+
+
+The application should NOT hard-code one model throughout the codebase.
+
+Create a model configuration:
+
+LLM_MODEL=llama3.1
+OLLAMA_BASE_URL=http://localhost:11434
+
+
+The configuration should allow switching to:
+
+phi3
+
+
+without changing application code.
+
+8. Agent vs Evaluation LLM
+
+There should be a clear distinction between:
+
+Agent / Planner
+
+Responsible for:
+
+What should I do next?
+
+Evaluation Model / LLM
+
+Responsible for:
+
+What do these results mean?
+
+
+These should not be confused.
+
+The numerical calculations must be performed by deterministic Python functions.
+
+The LLM should interpret those results.
+
+For example:
+
+Python:
+accuracy = 0.92
+f1 = 0.87
+class_imbalance = 0.72
+
+        ↓
+
+LLM:
+
+"The dataset has substantial class imbalance and the
+model's minority-class performance should be investigated."
+
+
+The LLM must NOT invent the numerical metrics.
+
+9. Tool Architecture
+
+The agent should interact with the system through tools.
+
+Every tool should have:
+
+name
+description
+input schema
+output schema
+implementation
+
+
+The agent should never directly manipulate files or datasets through arbitrary generated Python code unless explicitly designed as a controlled sandbox.
+
+10. Model Tools
+
+Create a model tool module.
+
+Recommended tools:
+
+load_model()
+inspect_model()
+validate_model()
+run_prediction()
+evaluate_model()
+get_model_metadata()
+
+10.1 load_model()
+
+Input:
+
+model_path
+
+
+Output:
+
+{
+  "model_id": "model_001",
+  "framework": "pytorch",
+  "status": "loaded"
+}
+
+10.2 inspect_model()
+
+Should determine:
+
+framework
+architecture
+input shape
+output shape
+number of parameters
+model type
+expected feature structure
+target type if available
+
+Example:
+
+{
+  "framework": "pytorch",
+  "model_type": "classification",
+  "input_shape": [10],
+  "output_classes": 3,
+  "parameter_count": 125000
+}
+
+10.3 validate_model()
+
+Validate:
+
+Model file exists
+Model can be loaded
+Framework supported
+Model input is known
+Model output is valid
+
+11. Dataset Tools
+
+Create a dataset tool module.
+
+Recommended tools:
+
+load_dataset()
+inspect_dataset()
+profile_dataset()
+validate_dataset()
+get_dataset_schema()
+get_statistics()
+
+12. Dataset Inspection
+
+The system should automatically determine:
+
+number of rows
+number of columns
+column names
+data types
+missing values
+duplicate rows
+unique values
+categorical features
+numerical features
+target column
+class distribution
+outliers
+
+
+Example:
+
+{
+  "rows": 10000,
+  "columns": 15,
+  "numerical_features": 10,
+  "categorical_features": 4,
+  "target": "label",
+  "missing_values": 324,
+  "duplicates": 27,
+  "class_distribution": {
+    "0": 8200,
+    "1": 1800
+  }
+}
+
+13. Dataset Validation
+
+Before running a model, validate compatibility between:
+
+MODEL
+   ↕
+DATASET
+
+
+Check:
+
+Input shape
+Dataset feature count == model expected feature count
+
+Feature types
+numerical ↔ numerical
+categorical ↔ categorical
+
+
+or verify that an appropriate preprocessing pipeline exists.
+
+Target
+
+Verify that:
+
+dataset target
+
+
+is compatible with:
+
+model output
+
+Framework
+
+Record the model framework and supported execution method.
+
+14. Evaluation Functions
+
+Evaluation functions produce objective technical results.
+
+These functions must be deterministic wherever possible.
+
+Create:
+
+evaluate_performance()
+evaluate_data_quality()
+evaluate_robustness()
+evaluate_transformation_impact()
+
+15. Performance Evaluation
+
+The system should select metrics based on task type.
+
+For classification:
+
+accuracy
+precision
+recall
+F1
+confusion matrix
+ROC-AUC where applicable
+PR-AUC where applicable
+per-class metrics
+
+
+For regression:
+
+MAE
+MSE
+RMSE
+R²
+MAPE where appropriate
+
+
+The exact metrics should be configurable.
+
+The agent should not blindly use accuracy for every problem.
+
+16. Data Quality Evaluation
+
+The data-quality evaluator should detect:
+
+missing values
+duplicate rows
+invalid values
+incorrect data types
+class imbalance
+constant columns
+near-constant columns
+outliers
+unexpected categories
+high-cardinality categorical features
+
+
+Output example:
+
+{
+  "missing_values": {
+    "status": "warning",
+    "count": 324
+  },
+  "class_imbalance": {
+    "status": "problem",
+    "ratio": 4.55
+  },
+  "duplicates": {
+    "status": "warning",
+    "count": 27
+  }
+}
+
+17. Robustness Evaluation
+
+Robustness tests should measure how model performance changes when the input data is altered.
+
+Examples:
+
+Gaussian noise
+missing values
+outliers
+label noise
+feature perturbation
+
+
+The system should preserve the original dataset.
+
+Never overwrite the original dataset during experiments.
+
+18. Transformation Functions
+
+Transformation functions actually modify the dataset.
+
+Create two categories.
+
+Data Improvement
+clean_data()
+scale_data()
+handle_outliers()
+balance_data()
+handle_missing_values()
+encode_categorical_features()
+
+Data Corruption
+add_gaussian_noise()
+inject_missing_values()
+inject_outliers()
+inject_label_noise()
+
+
+Each transformation must create a new dataset version.
+
+Example:
+
+dataset_original
+       ↓
+dataset_v001_cleaned
+       ↓
+dataset_v002_scaled
+       ↓
+dataset_v003_balanced
+
+19. Dataset Versioning
+
+Dataset versioning is critical.
+
+Never modify:
+
+original_dataset.csv
+
+
+Instead:
+
+datasets/
+    original/
+        dataset.csv
+
+    versions/
+        v001/
+            dataset.csv
+            metadata.json
+
+        v002/
+            dataset.csv
+            metadata.json
+
+
+Every transformation must record:
+
+{
+  "version": "v002",
+  "parent_version": "v001",
+  "operation": "balance_data",
+  "parameters": {
+    "method": "smote"
+  },
+  "created_at": "...",
+  "rows_before": 10000,
+  "rows_after": 15000
+}
+
+20. The Agentic Loop
+
+The core agent loop should conceptually work like this:
+
+while not state.is_complete():
+
+    context = build_agent_context(state)
+
+    decision = agent.decide(context)
+
+    tool = decision.tool
+
+    result = execute_tool(
+        tool,
+        decision.parameters
+    )
+
+    state.add_observation(result)
+
+    state.record_action(
+        tool=tool,
+        result=result
+    )
+
+    if decision.is_complete:
+        break
+
+
+The actual implementation should include:
+
+maximum iteration count
+error handling
+tool validation
+state persistence
+timeout handling
+user cancellation
+
+21. Agent State
+
+The agent should maintain explicit state.
+
+Example:
+
+{
+  "project_id": "project_001",
+
+  "user_goal": "Evaluate the model and improve performance",
+
+  "model": {
+    "id": "model_001",
+    "status": "loaded"
+  },
+
+  "dataset": {
+    "current_version": "v002"
+  },
+
+  "observations": [],
+
+  "actions": [],
+
+  "evaluation_results": [],
+
+  "transformations": [],
+
+  "iteration": 3,
+
+  "status": "running"
+}
+
+
+Do not rely exclusively on the LLM's conversation history as state.
+
+The application should maintain structured state.
+
+22. Example Agent Decision
+
+User:
+
+Evaluate my model and improve it if the dataset has problems.
+
+
+Initial state:
+
+Model loaded
+Dataset loaded
+No evaluation performed
+
+
+Agent:
+
+1. Inspect model
+
+
+Result:
+
+Classification model
+3 output classes
+
+
+Agent:
+
+2. Inspect dataset
+
+
+Result:
+
+Class 0: 8200
+Class 1: 1800
+Class 2: 500
+
+
+Agent reasoning:
+
+Dataset is significantly imbalanced.
+Performance should be evaluated before deciding
+whether balancing is beneficial.
+
+
+Agent:
+
+3. Evaluate original model
+
+
+Result:
+
+Accuracy: 92%
+Macro F1: 71%
+Minority-class F1: 42%
+
+
+Agent:
+
+4. Detect class imbalance
+
+
+Result:
+
+Severe imbalance
+
+
+Agent decision:
+
+5. Balance dataset
+
+
+Transformation:
+
+dataset_v001
+       ↓
+balance_data()
+       ↓
+dataset_v002
+
+
+Agent:
+
+6. Re-run model evaluation
+
+
+Result:
+
+Accuracy: 90%
+Macro F1: 82%
+Minority-class F1: 73%
+
+
+Agent:
+
+7. Compare original vs transformed
+
+
+Comparison:
+
+Accuracy:
+92% → 90%
+
+Macro F1:
+71% → 82%
+
+Minority F1:
+42% → 73%
+
+
+Agent decides:
+
+Balancing improves minority-class performance
+and macro F1 despite a small decrease in accuracy.
+
+
+Agent:
+
+8. Generate final report
+
+23. Important Agent Rule
+
+The agent must NOT automatically perform every available transformation.
+
+Bad architecture:
+
+Clean
+↓
+Scale
+↓
+Balance
+↓
+Noise
+↓
+Outliers
+↓
+Everything
+
+
+Correct architecture:
+
+Observe
+↓
+Identify problem
+↓
+Determine whether action is appropriate
+↓
+Choose transformation
+↓
+Evaluate
+↓
+Compare
+↓
+Decide whether another action is needed
+
+
+This prevents unnecessary transformations.
+
+24. Evaluation Result Schema
+
+All evaluators should return structured results.
+
+Example:
+
+{
+  "evaluation_id": "eval_001",
+  "dataset_version": "v001",
+  "model_id": "model_001",
+
+  "performance": {
+    "accuracy": 0.92,
+    "precision": 0.89,
+    "recall": 0.87,
+    "f1": 0.88
+  },
+
+  "data_quality": {
+    "missing_values": 324,
+    "duplicates": 27,
+    "class_imbalance": true,
+    "outliers": 102
+  },
+
+  "robustness": {
+    "gaussian_noise_10_percent": 0.83,
+    "missing_values_10_percent": 0.79
+  },
+
+  "warnings": [
+    "Severe class imbalance",
+    "Model is sensitive to noise"
+  ]
+}
+
+25. Before vs After Comparison
+
+The system must have a dedicated comparison component.
+
+Example:
+
+{
+  "baseline": {
+    "dataset_version": "v001",
+    "accuracy": 0.92,
+    "macro_f1": 0.71
+  },
+
+  "experiment": {
+    "dataset_version": "v002",
+    "accuracy": 0.90,
+    "macro_f1": 0.82
+  },
+
+  "changes": {
+    "accuracy": -0.02,
+    "macro_f1": 0.11
+  }
+}
+
+
+The comparison must be calculated programmatically.
+
+The LLM interprets it.
+
+26. Evaluation LLM
+
+Create an evaluation-report component.
+
+Input:
+
+evaluation results
+dataset metadata
+model metadata
+transformation history
+experiment history
+user goal
+
+
+Output:
+
+Overall Assessment
+
+Detected Issues
+
+Performance Analysis
+
+Robustness Analysis
+
+Transformation Impact
+
+Recommendations
+
+Experiment Summary
+
+Conclusion
+
+
+Example:
+
+Overall Assessment
+------------------
+Model Performance: Good
+Dataset Quality: Moderate
+Robustness: Weak
+
+Detected Issues
+---------------
+1. Class imbalance
+2. Missing values
+3. Sensitivity to Gaussian noise
+
+Recommendations
+---------------
+1. Balance the dataset
+2. Handle missing values
+3. Investigate model robustness
+
+Experiment Summary
+------------------
+Original Accuracy: 92%
+After Cleaning: 94%
+After 20% Noise: 78%
+
+Conclusion
+----------
+The model performs well on clean data but is
+sensitive to data corruption.
+
+27. LLM Safety / Reliability Rule
+
+The LLM should never be the source of truth for numerical results.
+
+For example, the LLM must not calculate:
+
+accuracy
+F1
+RMSE
+missing-value percentage
+class ratios
+
+
+when Python can calculate them.
+
+Correct:
+
+Python calculates
+       ↓
+structured JSON result
+       ↓
+LLM interprets
+
+
+Incorrect:
+
+Dataset
+       ↓
+LLM guesses statistics
+
+28. ChromaDB
+
+ChromaDB should be used as project memory.
+
+Store:
+
+project information
+model metadata
+dataset metadata
+experiment descriptions
+evaluation summaries
+transformation history
+previous reports
+user goals
+important observations
+
+
+Example document:
+
+Project: Customer Classification
+
+Model:
+PyTorch classifier
+
+Dataset:
+customer_data.csv
+
+Experiment:
+Applied class balancing.
+
+Result:
+Macro F1 increased from 0.71 to 0.82.
+
+Conclusion:
+Balancing improved minority-class performance.
+
+
+Metadata should include:
+
+{
+  "project_id": "project_001",
+  "type": "experiment",
+  "model_id": "model_001",
+  "dataset_version": "v002"
+}
+
+29. Why ChromaDB Is Needed
+
+The agent should be able to answer questions such as:
+
+What transformations did we try?
+
+Did balancing improve the model?
+
+What happened when we added noise?
+
+What was the original accuracy?
+
+What dataset version produced the best result?
+
+
+The system should retrieve previous experiment information rather than forcing the LLM to remember everything from the conversation.
+
+30. Project Structure
+
+Recommended backend structure:
+
+project/
+│
+├── app/
+│   │
+│   ├── main.py
+│   │
+│   ├── api/
+│   │   ├── projects.py
+│   │   ├── models.py
+│   │   ├── datasets.py
+│   │   ├── evaluations.py
+│   │   ├── experiments.py
+│   │   ├── chat.py
+│   │   └── reports.py
+│   │
+│   ├── agent/
+│   │   ├── agent.py
+│   │   ├── planner.py
+│   │   ├── state.py
+│   │   ├── context.py
+│   │   ├── prompts.py
+│   │   └── decision.py
+│   │
+│   ├── llm/
+│   │   ├── ollama_client.py
+│   │   ├── model_manager.py
+│   │   └── prompts.py
+│   │
+│   ├── models/
+│   │   ├── loader.py
+│   │   ├── inspector.py
+│   │   ├── validator.py
+│   │   └── predictor.py
+│   │
+│   ├── datasets/
+│   │   ├── loader.py
+│   │   ├── inspector.py
+│   │   ├── profiler.py
+│   │   ├── validator.py
+│   │   └── versioning.py
+│   │
+│   ├── evaluation/
+│   │   ├── performance.py
+│   │   ├── data_quality.py
+│   │   ├── robustness.py
+│   │   ├── comparison.py
+│   │   └── impact.py
+│   │
+│   ├── transformations/
+│   │   ├── cleaning.py
+│   │   ├── scaling.py
+│   │   ├── outliers.py
+│   │   ├── balancing.py
+│   │   ├── noise.py
+│   │   ├── missing_values.py
+│   │   └── label_noise.py
+│   │
+│   ├── memory/
+│   │   ├── chroma.py
+│   │   ├── repository.py
+│   │   └── embeddings.py
+│   │
+│   ├── reports/
+│   │   ├── generator.py
+│   │   └── schemas.py
+│   │
+│   ├── schemas/
+│   │   ├── project.py
+│   │   ├── model.py
+│   │   ├── dataset.py
+│   │   ├── evaluation.py
+│   │   └── experiment.py
+│   │
+│   └── services/
+│       ├── project_service.py
+│       ├── model_service.py
+│       ├── dataset_service.py
+│       └── experiment_service.py
+│
+├── storage/
+│   ├── models/
+│   ├── datasets/
+│   ├── experiments/
+│   └── reports/
+│
+├── tests/
+│   ├── test_models/
+│   ├── test_datasets/
+│   ├── test_evaluation/
+│   ├── test_transformations/
+│   ├── test_agent/
+│   └── test_api/
+│
+├── .env
+├── requirements.txt
+├── README.md
+└── docker-compose.yml
+
+31. Separation of Responsibilities
+
+The following separation must be maintained.
+
+Agent
+
+Decides:
+
+WHAT should happen next?
+
+Tool
+
+Performs:
+
+HOW the operation is executed.
+
+Evaluator
+
+Calculates:
+
+WHAT are the objective results?
+
+Transformation
+
+Changes:
+
+THE DATASET
+
+Memory
+
+Stores:
+
+WHAT HAPPENED BEFORE?
+
+Evaluation LLM
+
+Explains:
+
+WHAT DO THE RESULTS MEAN?
+
+API
+
+Provides:
+
+HOW DOES THE USER/FRONTEND ACCESS THE SYSTEM?
+
+32. Tool Registry
+
+Implement a central tool registry.
+
+Conceptually:
+
+ToolRegistry
+
+    model_tools
+        load_model
+        inspect_model
+        validate_model
+        predict
+
+    dataset_tools
+        load_dataset
+        inspect_dataset
+        profile_dataset
+        validate_dataset
+
+    evaluation_tools
+        evaluate_performance
+        evaluate_data_quality
+        evaluate_robustness
+        compare_results
+
+    transformation_tools
+        clean_data
+        scale_data
+        balance_data
+        handle_outliers
+        add_gaussian_noise
+        inject_missing_values
+        inject_outliers
+        inject_label_noise
+
+    memory_tools
+        search_project_history
+        save_experiment
+        retrieve_previous_results
+
+    reporting_tools
+        generate_report
+
+
+The LLM receives the tool descriptions and chooses from the registry.
+
+33. Tool Selection
+
+The LLM should return structured decisions.
+
+Example:
+
+{
+  "action": "evaluate_data_quality",
+  "reason": "The dataset needs to be inspected before evaluating transformations.",
+  "parameters": {
+    "dataset_version": "v001"
+  }
+}
+
+
+Another example:
+
+{
+  "action": "balance_data",
+  "reason": "Severe class imbalance was detected and minority-class performance is poor.",
+  "parameters": {
+    "dataset_version": "v001",
+    "method": "smote"
+  }
+}
+
+
+The backend validates this decision before executing the tool.
+
+34. Do Not Trust LLM Tool Parameters Blindly
+
+Every tool call must be validated.
+
+For example, if the LLM returns:
+
+{
+  "action": "balance_data",
+  "dataset_version": "does_not_exist"
+}
+
+
+the backend must reject it.
+
+The agent should receive:
+
+Tool execution failed:
+Dataset version does not exist.
+Available versions: v001, v002.
+
+
+The agent can then decide what to do next.
+
+This is part of the agentic loop.
+
+35. Error Handling
+
+Errors should become observations.
+
+Example:
+
+Agent
+ ↓
+Run prediction
+ ↓
+ERROR
+ ↓
+Input shape mismatch
+ ↓
+Agent observes error
+ ↓
+Agent inspects model
+ ↓
+Agent inspects dataset
+ ↓
+Agent determines preprocessing mismatch
+ ↓
+Agent decides next action
+
+
+Do not simply terminate the entire workflow for recoverable errors.
+
+36. Agent Stopping Conditions
+
+The agent must stop when:
+
+User objective has been satisfied
+
+
+or:
+
+No useful action remains
+
+
+or:
+
+Maximum iterations reached
+
+
+or:
+
+Required resource is unavailable
+
+
+or:
+
+Human approval is required
+
+
+Example:
+
+MAX_AGENT_ITERATIONS=10
+
+
+This prevents infinite loops.
+
+37. Human Approval
+
+For destructive or expensive operations, the agent should request confirmation.
+
+For example:
+
+The agent recommends balancing the dataset using SMOTE.
+
+This will create a new dataset version containing synthetic samples.
+
+Proceed?
+
+
+The original dataset must remain untouched regardless.
+
+38. Experiment Tracking
+
+Every experiment should have an ID.
+
+Example:
+
+experiment_001
+
+
+Record:
+
+experiment ID
+project ID
+model ID
+input dataset version
+output dataset version
+operation
+parameters
+metrics before
+metrics after
+agent reasoning
+timestamp
+status
+
+
+Example:
+
+{
+  "experiment_id": "exp_001",
+  "operation": "balance_data",
+
+  "input_dataset": "v001",
+  "output_dataset": "v002",
+
+  "metrics_before": {
+    "accuracy": 0.92,
+    "macro_f1": 0.71
+  },
+
+  "metrics_after": {
+    "accuracy": 0.90,
+    "macro_f1": 0.82
+  },
+
+  "agent_reasoning": "Balancing was selected because severe class imbalance was detected."
+}
+
+39. Chat Architecture
+
+User sends:
+
+Evaluate my model and tell me whether the dataset is good.
+
+
+Request:
+
+POST /chat
+
+
+Backend:
+
+Chat API
+    ↓
+Project State
+    ↓
+Agent
+    ↓
+Tool Loop
+    ↓
+Results
+    ↓
+LLM
+    ↓
+Response
+
+
+Response should contain both:
+
+natural language response
+
+
+and optionally:
+
+structured actions/results
+
+
+Example:
+
+{
+  "message": "The model performs well overall, but the dataset has significant class imbalance.",
+  "status": "completed",
+
+  "actions": [
+    "inspect_model",
+    "inspect_dataset",
+    "evaluate_performance",
+    "evaluate_data_quality"
+  ]
+}
+
+40. Agent Transparency
+
+The UI should expose what the agent is doing.
+
+Example:
+
+Agent:
+✓ Loaded model
+✓ Inspected model
+✓ Inspected dataset
+✓ Validated model/dataset compatibility
+✓ Evaluated baseline performance
+⚠ Detected class imbalance
+→ Testing balanced dataset
+✓ Evaluation complete
+→ Generating report
+
+
+Do not expose hidden chain-of-thought.
+
+Instead, expose concise action/status messages such as:
+
+"Detected severe class imbalance; evaluating whether balancing improves macro F1."
+
+41. Recommended API Endpoints
+Projects
+POST   /projects
+GET    /projects
+GET    /projects/{project_id}
+DELETE /projects/{project_id}
+
+Models
+POST /projects/{project_id}/models
+GET  /projects/{project_id}/models
+GET  /models/{model_id}
+
+Datasets
+POST /projects/{project_id}/datasets
+GET  /projects/{project_id}/datasets
+GET  /datasets/{dataset_id}
+GET  /datasets/{dataset_id}/versions
+
+Evaluation
+POST /projects/{project_id}/evaluate
+GET  /evaluations/{evaluation_id}
+
+Experiments
+GET /projects/{project_id}/experiments
+GET /experiments/{experiment_id}
+
+Chat
+POST /projects/{project_id}/chat
+GET  /projects/{project_id}/chat/history
+
+Reports
+POST /projects/{project_id}/reports
+GET  /reports/{report_id}
+
+42. Initial Database Design
+
+A relational database can be used for structured application state.
+
+Recommended entities:
+
+Project
+Model
+Dataset
+DatasetVersion
+Evaluation
+Experiment
+Transformation
+Report
+ChatMessage
+AgentAction
+
+
+ChromaDB should complement this database rather than necessarily replace it.
+
+Use the relational database for authoritative structured state.
+
+Use ChromaDB for semantic/project memory.
+
+43. Storage Design
+storage/
+│
+├── projects/
+│   └── project_001/
+│
+├── models/
+│   └── model_001/
+│       └── model_file
+│
+├── datasets/
+│   └── dataset_001/
+│       ├── original/
+│       │   └── dataset.csv
+│       │
+│       └── versions/
+│           ├── v001/
+│           ├── v002/
+│           └── v003/
+│
+├── experiments/
+│   └── exp_001/
+│       ├── metadata.json
+│       └── results.json
+│
+└── reports/
+    └── report_001.json
+
+44. Security Requirements
+
+Uploaded model and dataset files must be treated as untrusted.
+
+Implement:
+
+file type validation
+file size limits
+safe file names
+isolated storage
+path traversal protection
+execution isolation where required
+resource limits
+
+
+Do not allow an uploaded file to execute arbitrary commands on the host.
+
+45. Model Compatibility
+
+The first version should support a clearly defined set of model formats.
+
+For example:
+
+PyTorch
+Scikit-learn
+TensorFlow/Keras
+ONNX
+
+
+Do not attempt to support every possible model format initially.
+
+Create an adapter architecture:
+
+ModelAdapter
+    │
+    ├── PyTorchAdapter
+    ├── SklearnAdapter
+    ├── TensorFlowAdapter
+    └── ONNXAdapter
+
+
+Each adapter implements:
+
+load()
+inspect()
+validate()
+predict()
+
+46. Dataset Adapter
+
+Similarly:
+
+DatasetAdapter
+    │
+    ├── CSVAdapter
+    ├── ParquetAdapter
+    ├── JSONAdapter
+    └── ExcelAdapter
+
+
+Initial implementation can prioritize:
+
+CSV
+Parquet
+
+47. Transformation Pipeline
+
+Transformations should be composable.
+
+Example:
+
+Original Dataset
+      ↓
+Handle Missing Values
+      ↓
+Scale Features
+      ↓
+Balance Classes
+      ↓
+Transformed Dataset
+
+
+Represent the pipeline as:
+
+{
+  "pipeline": [
+    {
+      "operation": "handle_missing_values",
+      "parameters": {
+        "method": "median"
+      }
+    },
+    {
+      "operation": "scale_data",
+      "parameters": {
+        "method": "standard"
+      }
+    },
+    {
+      "operation": "balance_data",
+      "parameters": {
+        "method": "smote"
+      }
+    }
+  ]
+}
+
+48. Data Leakage Prevention
+
+This is extremely important.
+
+Transformations such as:
+
+scaling
+imputation
+SMOTE
+feature selection
+encoding
+
+
+must be fitted only on the training data where appropriate.
+
+The architecture should distinguish:
+
+train
+validation
+test
+
+
+The test set should not be used to tune transformations.
+
+The agent should not be allowed to accidentally optimize against the test set repeatedly.
+
+49. Baseline Evaluation
+
+Every project should establish a baseline.
+
+The baseline is:
+
+Original model
++
+Original dataset
+
+
+before transformations.
+
+Store:
+
+baseline_metrics
+baseline_dataset_version
+baseline_model_version
+
+
+Every experiment is compared against the baseline.
+
+50. Experiment Comparison Logic
+
+The system should support:
+
+Baseline
+   │
+   ├── Experiment A
+   │
+   ├── Experiment B
+   │
+   ├── Experiment C
+   │
+   └── Experiment D
+
+
+The agent can determine which experiment produced the most useful result.
+
+Do not define "best" as accuracy alone.
+
+The evaluation objective should depend on:
+
+user goal
+task type
+selected metrics
+constraints
+
+
+For example:
+
+User goal:
+Improve minority-class detection.
+
+
+Then:
+
+Macro F1
+Minority F1
+Recall
+
+
+may matter more than raw accuracy.
+
+51. User Goal Representation
+
+Convert the user's request into structured objectives.
+
+Example:
+
+User:
+
+Check whether my model is robust to noisy data.
+
+
+Agent goal:
+
+{
+  "objective": "robustness_evaluation",
+  "target": "noise",
+  "priority": "high"
+}
+
+
+User:
+
+Improve the model if possible.
+
+
+Agent goal:
+
+{
+  "objective": "performance_improvement",
+  "allow_transformations": true,
+  "preserve_original_dataset": true
+}
+
+52. Agent Context
+
+At every iteration, provide the agent with a compact state summary.
+
+Example:
+
+PROJECT:
+Customer Classification
+
+USER GOAL:
+Improve minority-class performance.
+
+MODEL:
+PyTorch classification model.
+3 output classes.
+
+CURRENT DATASET:
+v002
+
+DATA QUALITY:
+Class imbalance: severe
+Missing values: 0
+Outliers: moderate
+
+BASELINE:
+Accuracy: 92%
+Macro F1: 71%
+Minority F1: 42%
+
+LATEST EXPERIMENT:
+SMOTE
+
+RESULT:
+Accuracy: 90%
+Macro F1: 82%
+Minority F1: 73%
+
+AVAILABLE TOOLS:
+...
+
+QUESTION:
+What should happen next?
+
+
+The agent then selects the next tool.
+
+53. Agent Prompt Design
+
+The system prompt should establish:
+
+You are an ML evaluation agent.
+
+Your job is to achieve the user's objective by selecting
+appropriate tools and evaluating their results.
+
+You must:
+- inspect the model and dataset before acting
+- use tools for numerical calculations
+- never invent metrics
+- preserve original data
+- consider previous experiment results
+- avoid unnecessary transformations
+- compare experiments objectively
+- stop when the objective is satisfied
+- request user approval for potentially significant actions
+
+
+The tool descriptions should be supplied separately.
+
+54. Agent Decision Contract
+
+Require structured output.
+
+Conceptually:
+
+{
+  "status": "continue",
+  "action": "evaluate_performance",
+  "parameters": {
+    "dataset_version": "v001"
+  },
+  "reason": "A baseline is required before comparing transformations."
+}
+
+
+Completion:
+
+{
+  "status": "complete",
+  "action": "generate_report",
+  "parameters": {},
+  "reason": "The user's objective has been satisfied."
+}
+
+55. Do Not Build a Fully Autonomous Agent First
+
+Development should be incremental.
+
+Start with:
+
+User
+ ↓
+Agent
+ ↓
+Inspect Model
+ ↓
+Inspect Dataset
+ ↓
+Evaluate
+ ↓
+Report
+
+
+Then add:
+
+Agent
+ ↓
+Detect Problem
+ ↓
+Transformation
+ ↓
+Re-evaluate
+ ↓
+Compare
+
+
+Then add:
+
+Agent
+ ↓
+Multiple experiments
+ ↓
+Memory
+ ↓
+Long-running project state
+
+
+This makes debugging much easier.
+
+56. Phase 1 — Foundation
+
+Implement:
+
+FastAPI
+Ollama connection
+Project creation
+Model upload
+Dataset upload
+Basic storage
+
+
+Verify:
+
+Ollama responds
+Model can be loaded
+Dataset can be loaded
+
+57. Phase 2 — Inspection
+
+Implement:
+
+model inspection
+dataset inspection
+dataset profiling
+model/dataset validation
+
+
+The system should be able to answer:
+
+What model did the user upload?
+
+
+and:
+
+What dataset did the user upload?
+
+58. Phase 3 — Evaluation
+
+Implement:
+
+performance evaluation
+data quality evaluation
+robustness evaluation
+
+
+Establish:
+
+baseline evaluation
+
+
+before any transformation.
+
+59. Phase 4 — Agent
+
+Implement:
+
+agent state
+tool registry
+tool selection
+agent loop
+iteration limits
+error handling
+
+
+Start with a small tool set.
+
+Example:
+
+inspect_model
+inspect_dataset
+validate_model_dataset
+evaluate_performance
+evaluate_data_quality
+generate_report
+
+60. Phase 5 — Transformations
+
+Add:
+
+clean_data
+handle_missing_values
+scale_data
+handle_outliers
+balance_data
+
+
+Then add corruption experiments:
+
+add_gaussian_noise
+inject_missing_values
+inject_outliers
+inject_label_noise
+
+61. Phase 6 — Experiment Tracking
+
+Implement:
+
+experiment IDs
+dataset versions
+transformation history
+before/after metrics
+experiment comparison
+
+62. Phase 7 — ChromaDB Memory
+
+Add:
+
+experiment embeddings
+report embeddings
+project history
+semantic retrieval
+
+
+Allow the agent to query previous experiments.
+
+63. Phase 8 — Chatbot
+
+Build the conversational interface.
+
+Example:
+
+User:
+Why is my model performing poorly?
+
+Agent:
+I found that the overall accuracy is 92%, but the minority
+class F1 score is only 42%. The dataset is significantly
+imbalanced. I recommend evaluating a balanced version.
+
+
+User:
+
+Do it.
+
+
+Agent continues from existing state.
+
+64. Phase 9 — Reporting
+
+Generate:
+
+Markdown report
+JSON report
+HTML report
+
+
+Potential future feature:
+
+PDF report
+
+65. Example End-to-End Workflow
+USER
+ │
+ │ Upload model
+ │ Upload dataset
+ │
+ ▼
+PROJECT CREATED
+ │
+ ▼
+AGENT INITIALIZED
+ │
+ ▼
+INSPECT MODEL
+ │
+ ▼
+INSPECT DATASET
+ │
+ ▼
+VALIDATE COMPATIBILITY
+ │
+ ▼
+RUN BASELINE EVALUATION
+ │
+ ▼
+DATA QUALITY EVALUATION
+ │
+ ▼
+ROBUSTNESS EVALUATION
+ │
+ ▼
+AGENT OBSERVES RESULTS
+ │
+ ├── No major issues
+ │       ↓
+ │    Generate report
+ │
+ └── Issues detected
+         ↓
+      Determine appropriate action
+         ↓
+      Apply transformation
+         ↓
+      Create dataset version
+         ↓
+      Re-run evaluation
+         ↓
+      Compare with baseline
+         ↓
+      Agent observes result
+         │
+         ├── Good enough
+         │      ↓
+         │   Generate report
+         │
+         └── More action required
+                ↓
+             Continue loop
+
+66. Example Final Report
+MODEL & DATASET EVALUATION REPORT
+
+Project:
+Customer Classification
+
+Model:
+PyTorch Classification Model
+
+Dataset:
+customer_data.csv
+
+----------------------------------------
+1. MODEL PERFORMANCE
+----------------------------------------
+
+Accuracy: 92%
+Macro F1: 71%
+Minority Class F1: 42%
+
+Assessment:
+Overall accuracy is good, but minority-class
+performance is significantly weaker.
+
+----------------------------------------
+2. DATA QUALITY
+----------------------------------------
+
+Missing Values: 324
+Duplicate Rows: 27
+Class Imbalance: Severe
+Outliers: Moderate
+
+----------------------------------------
+3. ROBUSTNESS
+----------------------------------------
+
+10% Gaussian Noise:
+Accuracy decreased from 92% to 83%.
+
+Assessment:
+The model demonstrates sensitivity to input noise.
+
+----------------------------------------
+4. EXPERIMENTS
+----------------------------------------
+
+Experiment 1:
+Balance dataset using SMOTE.
+
+Before:
+Accuracy: 92%
+Macro F1: 71%
+
+After:
+Accuracy: 90%
+Macro F1: 82%
+
+----------------------------------------
+5. RECOMMENDATION
+----------------------------------------
+
+The balanced dataset improves macro F1 and
+minority-class performance, although overall
+accuracy decreases slightly.
+
+For applications where minority-class detection
+is important, the balanced dataset is preferable.
+
+----------------------------------------
+6. CONCLUSION
+----------------------------------------
+
+The model performs well on the original data but
+has significant sensitivity to class imbalance and
+input noise.
+
+Further robustness testing is recommended.
+
+67. Critical Design Rules
+
+The implementation must follow these rules.
+
+Rule 1
+
+Original datasets are immutable.
+
+Rule 2
+
+Every transformation creates a new dataset version.
+
+Rule 3
+
+Every evaluation produces structured machine-readable results.
+
+Rule 4
+
+Numerical metrics are calculated by Python, not the LLM.
+
+Rule 5
+
+The LLM interprets results and decides actions.
+
+Rule 6
+
+The agent decides dynamically what tool should run next.
+
+Rule 7
+
+The agent must observe tool results before deciding the next action.
+
+Rule 8
+
+Previous experiments must influence future decisions.
+
+Rule 9
+
+The system must have an explicit stopping condition.
+
+Rule 10
+
+The agent must not repeatedly apply transformations without evidence that they are useful.
+
+Rule 11
+
+Baseline results must always be preserved.
+
+Rule 12
+
+The user must be able to see a concise description of the agent's actions.
+
+68. MVP Scope
+
+The first working version should NOT attempt to implement every possible ML capability.
+
+The MVP should contain:
+
+✓ Project creation
+✓ Model upload
+✓ Dataset upload
+✓ Ollama integration
+✓ Phi-3 / Llama 3.1 model selection
+✓ Model inspection
+✓ Dataset inspection
+✓ Model/dataset validation
+✓ Baseline evaluation
+✓ Data quality evaluation
+✓ Basic transformations
+✓ Before/after comparison
+✓ Agentic loop
+✓ Experiment history
+✓ ChromaDB memory
+✓ Final report
+✓ Chat interface
+
+69. Recommended MVP Agent Tools
+
+Start with exactly these tools:
+
+1. inspect_model
+2. inspect_dataset
+3. validate_model_dataset
+4. evaluate_performance
+5. evaluate_data_quality
+6. evaluate_robustness
+7. handle_missing_values
+8. balance_data
+9. handle_outliers
+10. scale_data
+11. add_gaussian_noise
+12. compare_results
+13. search_project_history
+14. save_experiment
+15. generate_report
+
+
+Do not build dozens of tools before the basic loop works.
+
+70. Definition of Done for MVP
+
+The MVP is considered successful when the following scenario works end-to-end:
+
+1. User creates project.
+
+2. User uploads model.
+
+3. User uploads dataset.
+
+4. User asks:
+
+   "Evaluate my model and improve it if the
+    dataset has problems."
+
+5. Agent inspects model.
+
+6. Agent inspects dataset.
+
+7. Agent validates compatibility.
+
+8. Agent runs baseline evaluation.
+
+9. Agent detects a data-quality problem.
+
+10. Agent chooses an appropriate transformation.
+
+11. Transformation creates a new dataset version.
+
+12. Agent evaluates the model on the new dataset.
+
+13. System compares before vs after.
+
+14. Agent decides whether the result is sufficient.
+
+15. Agent generates a final report.
+
+16. Experiment is stored.
+
+17. User can ask:
+
+    "What did you change and did it help?"
+
+18. Agent retrieves the experiment from project memory
+    and answers using stored results.
+
+71. Final Architectural Principle
+
+The most important concept in this project is that the agent is not the center of the data itself.
+
+The center is:
+
+              ┌───────────────┐
+              │     MODEL     │
+              └───────┬───────┘
+                      │
+                      ↕
+              ┌───────────────┐
+              │    DATASET    │
+              └───────┬───────┘
+                      │
+                      ▼
+              ┌───────────────┐
+              │  EVALUATION   │
+              └───────┬───────┘
+                      │
+                      ▼
+              ┌───────────────┐
+              │    RESULTS    │
+              └───────┬───────┘
+                      │
+                      ▼
+                 ┌─────────┐
+                 │  AGENT  │
+                 └────┬────┘
+                      │
+              DECIDES NEXT ACTION
+                      │
+          ┌───────────┴───────────┐
+          ▼                       ▼
+    TRANSFORM DATA           RUN EVALUATION
+          │                       │
+          └───────────┬───────────┘
+                      ▼
+                NEW RESULTS
+                      │
+                      ▼
+                    AGENT
+                      │
+               DECIDE AGAIN
+                      │
+                     ...
+
+
+The agent therefore operates as a closed-loop controller around the model, dataset, evaluation system, and project memory.
+
+The fundamental workflow is:
+
+USER GOAL
+   ↓
+AGENT
+   ↓
+INSPECT
+   ↓
+ACT
+   ↓
+OBSERVE
+   ↓
+EVALUATE
+   ↓
+REASON
+   ↓
+ACT AGAIN
+   ↓
+OBSERVE
+   ↓
+COMPARE
+   ↓
+DECIDE
+   ↓
+FINISH
+
+
+This is what makes the application genuinely agentic.
+
+72. Implementation Instruction for the Coding LLM
+
+When implementing this specification, follow this order:
+
+STEP 1
+Create the backend project structure.
+
+STEP 2
+Implement configuration and environment variables.
+
+STEP 3
+Implement Ollama client.
+
+STEP 4
+Implement project management.
+
+STEP 5
+Implement model storage and model adapters.
+
+STEP 6
+Implement dataset storage and dataset adapters.
+
+STEP 7
+Implement model inspection.
+
+STEP 8
+Implement dataset profiling.
+
+STEP 9
+Implement model/dataset validation.
+
+STEP 10
+Implement deterministic evaluation functions.
+
+STEP 11
+Implement dataset versioning.
+
+STEP 12
+Implement transformation functions.
+
+STEP 13
+Implement evaluation comparison.
+
+STEP 14
+Implement experiment persistence.
+
+STEP 15
+Implement ChromaDB memory.
+
+STEP 16
+Implement the tool registry.
+
+STEP 17
+Implement explicit AgentState.
+
+STEP 18
+Implement the agent decision loop.
+
+STEP 19
+Implement structured tool-calling decisions.
+
+STEP 20
+Implement the evaluation-report LLM.
+
+STEP 21
+Implement chat API.
+
+STEP 22
+Implement frontend.
+
+STEP 23
+Write unit tests.
+
+STEP 24
+Write an end-to-end test for the complete
+agentic evaluation workflow.
+
+STEP 25
+Only after the MVP works, add additional
+transformations and evaluation capabilities.
+
+
+The coding agent should implement each phase incrementally, run tests after each phase, and avoid creating placeholder functionality that silently pretends an ML operation was successful.
+
+The first target should be a working end-to-end MVP, not a large collection of disconnected features.

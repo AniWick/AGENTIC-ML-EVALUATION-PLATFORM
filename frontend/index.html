@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic ML Model & Dataset Evaluation Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --bg-light: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+        }
+        body {
+            background-color: var(--bg-light);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #1e293b;
+        }
+        .navbar {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+        }
+        .chat-box {
+            height: 380px;
+            overflow-y: auto;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .chat-msg {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            max-width: 85%;
+            font-size: 0.95rem;
+            white-space: pre-wrap;
+        }
+        .chat-user {
+            background: #e0f2fe;
+            color: #0369a1;
+            margin-left: auto;
+        }
+        .chat-bot {
+            background: #f1f5f9;
+            color: #334155;
+            margin-right: auto;
+        }
+        .action-pill {
+            display: inline-block;
+            padding: 3px 10px;
+            background: #ecfdf5;
+            color: #065f46;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin: 2px;
+            border: 1px solid #a7f3d0;
+        }
+        .metric-badge {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .metric-label {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .report-preview {
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 16px;
+            border-radius: 8px;
+            max-height: 450px;
+            overflow-y: auto;
+            font-family: Consolas, monospace;
+            font-size: 0.88rem;
+        }
+        .preset-banner {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 12px 16px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg px-4 py-3 sticky-top">
+        <div class="container-fluid">
+            <span class="navbar-brand fw-bold text-primary">
+                <i class="bi bi-robot me-2"></i>Agentic ML Evaluation Platform
+            </span>
+            <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-1">
+                    <small class="text-muted fw-bold">LLM Model:</small>
+                    <select id="llmModelSelect" class="form-select form-select-sm" style="width: 140px;">
+                        <option value="phi3" selected>Phi-3 Mini</option>
+                        <option value="llama3.1">Llama 3.1</option>
+                    </select>
+                </div>
+                <select id="projectSelect" class="form-select form-select-sm" style="min-width: 200px;" onchange="loadSelectedProject()">
+                    <option value="">Select or Create Project...</option>
+                </select>
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newProjectModal">
+                    <i class="bi bi-plus-lg me-1"></i>New Project
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-4 py-3">
+        <!-- Top Preset Quick-Start Banner -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="preset-banner d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div>
+                            <span class="badge bg-primary me-2"><i class="bi bi-lightning-charge-fill me-1"></i>Benchmark Presets</span>
+                            <strong>Instant Model & Dataset Benchmark:</strong>
+                            <span class="text-muted ms-2 small">Select pre-trained model & benchmark dataset without needing local files:</span>
+                        </div>
+                        <select id="presetDropdown" class="form-select form-select-sm" style="min-width: 250px;">
+                            <option value="iris" selected>🌸 Iris Flower Classification (4 Features, 3 Classes)</option>
+                            <option value="breast_cancer">🔬 Breast Cancer Diagnostics (30 Features)</option>
+                            <option value="wine">🍷 Wine Cultivar Benchmark (13 Features)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-primary fw-bold" onclick="loadBenchmarkPreset()">
+                            <i class="bi bi-download me-1"></i>Load Benchmark Preset
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Info & Action Bar -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card p-3 d-flex flex-row align-items-center justify-content-between">
+                    <div>
+                        <h5 class="mb-1" id="currentProjectTitle">No Project Selected</h5>
+                        <small class="text-muted" id="currentProjectDesc">Select a project or load a benchmark preset above to begin evaluation.</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button id="runEvalBtn" class="btn btn-success" onclick="triggerFullEvaluation()" disabled>
+                            <i class="bi bi-play-fill me-1"></i>Run Agentic Evaluation
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Left Column: Uploads & Project Assets -->
+            <div class="col-md-4">
+                <!-- Upload Model -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-cpu me-2"></i>1. Machine Learning Model</span>
+                        <span id="modelBadge" class="badge bg-secondary">None</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <input type="file" id="modelFileInput" class="form-control form-control-sm" accept=".pkl,.joblib,.pt,.pth,.onnx">
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary w-100" onclick="uploadModel()">
+                            <i class="bi bi-upload me-1"></i>Upload Model (.pkl, .joblib, .pt, .onnx)
+                        </button>
+                        <div id="modelMetaBox" class="mt-2 text-muted small" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- Upload Dataset -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-table me-2"></i>2. Dataset</span>
+                        <span id="datasetBadge" class="badge bg-secondary">None</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <input type="file" id="datasetFileInput" class="form-control form-control-sm" accept=".csv,.parquet,.json">
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary w-100" onclick="uploadDataset()">
+                            <i class="bi bi-upload me-1"></i>Upload Dataset (.csv, .parquet, .json)
+                        </button>
+                        <div id="datasetMetaBox" class="mt-2 text-muted small" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- Dataset Versions Lineage -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-git me-2"></i>Dataset Version History
+                    </div>
+                    <div class="card-body p-0">
+                        <ul id="versionList" class="list-group list-group-flush small">
+                            <li class="list-group-item text-muted">No versions uploaded yet.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle Column: Agent Transparency & Chat -->
+            <div class="col-md-5">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-chat-dots me-2"></i>Agent Conversational Controller</span>
+                        <span id="agentStatusBadge" class="badge bg-secondary">Idle</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="chatBox" class="chat-box mb-3">
+                            <div class="chat-msg chat-bot">
+                                Welcome! Select a Benchmark Preset (like 🌸 Iris) or upload custom files. Ask me to evaluate, inspect, clean, or balance your dataset!
+                            </div>
+                        </div>
+
+                        <!-- Actions Log -->
+                        <div class="mb-2">
+                            <small class="fw-bold text-muted">Agent Actions Taken:</small>
+                            <div id="actionsLog" class="d-flex flex-wrap mt-1"></div>
+                        </div>
+
+                        <div class="input-group">
+                            <input type="text" id="chatInput" class="form-control" placeholder="e.g. Evaluate my Iris model and improve it if there is class imbalance..." onkeydown="if(event.key==='Enter') sendChatMessage()">
+                            <button class="btn btn-primary" onclick="sendChatMessage()">
+                                <i class="bi bi-send-fill"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Metrics & Evaluation Report -->
+            <div class="col-md-3">
+                <!-- Live Metric Summary -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-speedometer2 me-2"></i>Performance Delta
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="row g-2">
+                            <div class="col-6 p-2 border-end">
+                                <div class="metric-label">Baseline Acc</div>
+                                <div class="metric-badge" id="baseAcc">-</div>
+                            </div>
+                            <div class="col-6 p-2">
+                                <div class="metric-label">Final Acc</div>
+                                <div class="metric-badge text-success" id="finalAcc">-</div>
+                            </div>
+                            <div class="col-6 p-2 border-end border-top">
+                                <div class="metric-label">Baseline F1</div>
+                                <div class="metric-badge" id="baseF1">-</div>
+                            </div>
+                            <div class="col-6 p-2 border-top">
+                                <div class="metric-label">Final F1</div>
+                                <div class="metric-badge text-success" id="finalF1">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Latest Report Viewer -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-file-earmark-text me-2"></i>Markdown Report</span>
+                        <a id="mdDownloadLink" href="#" class="btn btn-sm btn-outline-primary" style="display: none;">
+                            <i class="bi bi-download me-1"></i>Download .md
+                        </a>
+                    </div>
+                    <div class="card-body p-2">
+                        <div id="reportBox" class="report-preview">No report generated yet. Run evaluation to create report.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Project Modal -->
+    <div class="modal fade" id="newProjectModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Evaluation Project</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Project Name</label>
+                        <input type="text" id="newProjName" class="form-control" placeholder="e.g. Iris Classification Project">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea id="newProjDesc" class="form-control" rows="2" placeholder="Evaluate Iris dataset and model robustness"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="createProject()">Create Project</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentProject = null;
+
+        window.onload = async () => {
+            await fetchProjects();
+        };
+
+        async function fetchProjects() {
+            const res = await fetch("/projects");
+            const projs = await res.json();
+            const select = document.getElementById("projectSelect");
+            select.innerHTML = '<option value="">Select or Create Project...</option>';
+            projs.forEach(p => {
+                const opt = document.createElement("option");
+                opt.value = p.id;
+                opt.textContent = `${p.name} (${p.id})`;
+                select.appendChild(opt);
+            });
+            if (projs.length > 0) {
+                select.value = projs[0].id;
+                await loadSelectedProject();
+            }
+        }
+
+        async function createProject() {
+            const name = document.getElementById("newProjName").value.trim();
+            const desc = document.getElementById("newProjDesc").value.trim();
+            if (!name) return alert("Please enter project name");
+
+            const res = await fetch("/projects", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, description: desc })
+            });
+            const proj = await res.json();
+            bootstrap.Modal.getInstance(document.getElementById("newProjectModal")).hide();
+            await fetchProjects();
+            document.getElementById("projectSelect").value = proj.id;
+            await loadSelectedProject();
+        }
+
+        async function loadSelectedProject() {
+            const projId = document.getElementById("projectSelect").value;
+            if (!projId) return;
+
+            const res = await fetch(`/projects/${projId}`);
+            currentProject = await res.json();
+
+            document.getElementById("currentProjectTitle").textContent = currentProject.name;
+            document.getElementById("currentProjectDesc").textContent = currentProject.description || `ID: ${currentProject.id}`;
+
+            document.getElementById("modelBadge").className = currentProject.model_id ? "badge bg-success" : "badge bg-secondary";
+            document.getElementById("modelBadge").textContent = currentProject.model_id ? "Loaded" : "None";
+
+            document.getElementById("datasetBadge").className = currentProject.dataset_id ? "badge bg-success" : "badge bg-secondary";
+            document.getElementById("datasetBadge").textContent = currentProject.dataset_id ? "Loaded" : "None";
+
+            document.getElementById("runEvalBtn").disabled = !(currentProject.model_id && currentProject.dataset_id);
+
+            await loadVersions();
+            await loadReports();
+            await loadChatHistory();
+        }
+
+        async function loadBenchmarkPreset() {
+            const presetId = document.getElementById("presetDropdown").value;
+            if (!currentProject) {
+                // Auto-create a project for the preset
+                const res = await fetch("/projects", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                        name: `${presetId.toUpperCase()} Evaluation Project`, 
+                        description: `Auto-generated benchmark project for ${presetId}` 
+                    })
+                });
+                const newProj = await res.json();
+                await fetchProjects();
+                document.getElementById("projectSelect").value = newProj.id;
+                await loadSelectedProject();
+            }
+
+            setAgentStatus("Loading Preset...", "bg-info text-dark");
+            addChatMessage("user", `Load ${presetId} benchmark model and dataset.`);
+
+            const res = await fetch(`/projects/${currentProject.id}/load-preset/${presetId}`, {
+                method: "POST"
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                const cachedMsg = data.was_cached ? "(Retrieved from local storage cache)" : "(Downloaded and cached to local storage)";
+                addChatMessage("assistant", `Successfully loaded ${presetId} pre-trained model and dataset ${cachedMsg}! You can now click 'Run Agentic Evaluation' or chat with me.`);
+                await loadSelectedProject();
+                setAgentStatus("Ready", "bg-success");
+            } else {
+                alert("Error loading preset: " + JSON.stringify(data));
+                setAgentStatus("Idle", "bg-secondary");
+            }
+        }
+
+        async function uploadModel() {
+            if (!currentProject) return alert("Select a project first");
+            const fileInput = document.getElementById("modelFileInput");
+            if (!fileInput.files[0]) return alert("Select a model file");
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            const res = await fetch(`/projects/${currentProject.id}/models`, {
+                method: "POST",
+                body: formData
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                alert("Model uploaded and inspected successfully!");
+                await loadSelectedProject();
+            } else {
+                alert("Error: " + JSON.stringify(data));
+            }
+        }
+
+        async function uploadDataset() {
+            if (!currentProject) return alert("Select a project first");
+            const fileInput = document.getElementById("datasetFileInput");
+            if (!fileInput.files[0]) return alert("Select a dataset file");
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            const res = await fetch(`/projects/${currentProject.id}/datasets`, {
+                method: "POST",
+                body: formData
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                alert("Dataset uploaded and initialized as v001!");
+                await loadSelectedProject();
+            } else {
+                alert("Error: " + JSON.stringify(data));
+            }
+        }
+
+        async function loadVersions() {
+            if (!currentProject || !currentProject.dataset_id) return;
+            const res = await fetch(`/datasets/${currentProject.dataset_id}/versions`);
+            const versions = await res.json();
+            const list = document.getElementById("versionList");
+            list.innerHTML = "";
+            versions.forEach(v => {
+                const li = document.createElement("li");
+                li.className = "list-group-item d-flex justify-content-between align-items-center";
+                li.innerHTML = `<div><strong>${v.version}</strong> (${v.operation})<br><small class="text-muted">${v.row_count} rows, ${v.column_count} cols</small></div>`;
+                list.appendChild(li);
+            });
+        }
+
+        async function loadReports() {
+            if (!currentProject) return;
+            const res = await fetch(`/projects/${currentProject.id}/reports`);
+            const reports = await res.json();
+            if (reports.length > 0) {
+                const latest = reports[0];
+                const detailRes = await fetch(`/reports/${latest.id}`);
+                const detail = await detailRes.json();
+                document.getElementById("reportBox").textContent = detail.content_markdown;
+                const link = document.getElementById("mdDownloadLink");
+                link.href = `/reports/${latest.id}/download`;
+                link.style.display = "inline-block";
+            }
+        }
+
+        async function triggerFullEvaluation() {
+            if (!currentProject) return;
+            setAgentStatus("Running...", "bg-warning text-dark");
+            addChatMessage("user", "Run full agentic evaluation and data improvement.");
+
+            const res = await fetch(`/projects/${currentProject.id}/evaluate`, { method: "POST" });
+            const data = await res.json();
+
+            setAgentStatus("Completed", "bg-success");
+            addChatMessage("assistant", `Evaluation complete! Actions taken: ${data.actions_taken.join(" -> ")}`);
+            updateActionsLog(data.actions_taken);
+
+            if (data.baseline_metrics) {
+                document.getElementById("baseAcc").textContent = data.baseline_metrics.accuracy ? (data.baseline_metrics.accuracy * 100).toFixed(1) + "%" : "N/A";
+                document.getElementById("baseF1").textContent = data.baseline_metrics.f1_macro ? (data.baseline_metrics.f1_macro * 100).toFixed(1) + "%" : "N/A";
+            }
+            if (data.latest_metrics) {
+                document.getElementById("finalAcc").textContent = data.latest_metrics.accuracy ? (data.latest_metrics.accuracy * 100).toFixed(1) + "%" : "N/A";
+                document.getElementById("finalF1").textContent = data.latest_metrics.f1_macro ? (data.latest_metrics.f1_macro * 100).toFixed(1) + "%" : "N/A";
+            }
+
+            await loadVersions();
+            await loadReports();
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById("chatInput");
+            const msg = input.value.trim();
+            if (!msg || !currentProject) return;
+            input.value = "";
+
+            addChatMessage("user", msg);
+            setAgentStatus("Thinking...", "bg-warning text-dark");
+
+            const res = await fetch(`/projects/${currentProject.id}/chat`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: msg })
+            });
+            const data = await res.json();
+            setAgentStatus("Completed", "bg-success");
+            addChatMessage("assistant", data.message);
+            if (data.actions_taken) updateActionsLog(data.actions_taken);
+            await loadReports();
+            await loadVersions();
+        }
+
+        async function loadChatHistory() {
+            if (!currentProject) return;
+            const res = await fetch(`/projects/${currentProject.id}/chat/history`);
+            const history = await res.json();
+            const chatBox = document.getElementById("chatBox");
+            chatBox.innerHTML = "";
+            history.forEach(h => addChatMessage(h.sender, h.message));
+        }
+
+        function addChatMessage(sender, text) {
+            const chatBox = document.getElementById("chatBox");
+            const msgDiv = document.createElement("div");
+            msgDiv.className = `chat-msg ${sender === "user" ? "chat-user" : "chat-bot"}`;
+            msgDiv.textContent = text;
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function updateActionsLog(actions) {
+            const logDiv = document.getElementById("actionsLog");
+            logDiv.innerHTML = "";
+            actions.forEach(a => {
+                const span = document.createElement("span");
+                span.className = "action-pill";
+                span.innerHTML = `<i class="bi bi-check-circle me-1"></i>${a}`;
+                logDiv.appendChild(span);
+            });
+        }
+
+        function setAgentStatus(text, badgeClass) {
+            const badge = document.getElementById("agentStatusBadge");
+            badge.textContent = text;
+            badge.className = `badge ${badgeClass}`;
+        }
+    </script>
+</body>
+</html>
