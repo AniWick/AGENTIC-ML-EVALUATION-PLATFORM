@@ -90,8 +90,7 @@
             border-radius: 8px;
             max-height: 450px;
             overflow-y: auto;
-            font-family: Consolas, monospace;
-            font-size: 0.88rem;
+            font-size: 0.9rem;
             border: 1px solid var(--border-color);
         }
         .asset-selection { background: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; }
@@ -214,6 +213,10 @@
                             <div id="selectedDatasetName" class="small text-muted mt-2">No dataset selected.</div>
                         </div>
                         <div id="datasetMetaBox" class="mt-2 text-muted small" style="display: none;"></div>
+                        <div class="asset-selection mt-3">
+                            <label class="form-label small fw-semibold mb-1">Dataset actions (creates a new version)</label>
+                            <div class="input-group input-group-sm"><select id="datasetAction" class="form-select"><option value="clean">Clean missing values</option><option value="deduplicate">Remove duplicates</option><option value="prune">Prune outlier rows</option><option value="clip_outliers">Clip outliers</option><option value="balance">Balance classes</option><option value="scale">Scale features</option></select><button class="btn btn-outline-primary" onclick="applyDatasetAction()">Apply</button></div>
+                        </div>
                     </div>
                 </div>
 
@@ -284,6 +287,7 @@
                             <i class="bi bi-download me-1"></i>Download .md
                         </a>
                     </div>
+                    <div class="card-body"><div id="reportPreview" class="report-preview text-muted">Run an evaluation to view the latest report.</div></div>
                 </div>
             </div>
         </div>
@@ -321,7 +325,7 @@
         let currentProject = null;
         let noiseMetrics = null;
         let noiseChart = null;
-        const quickActionLabels = [["Evaluate my model and dataset", "Evaluate"], ["Inspect my model and dataset", "Inspect"], ["Clean missing values in my dataset", "Clean data"], ["Balance my dataset", "Balance data"], ["Show my project history", "Project history"]];
+        const quickActionLabels = [["Evaluate my model and dataset", "Evaluate"], ["Inspect my model and dataset", "Inspect"], ["Clean missing values in my dataset", "Clean data"], ["Balance my dataset", "Balance data"], ["Show my project history", "Project history"], ["Show model choices", "Pick Model"]];
 
         window.onload = async () => {
             await fetchProjects();
@@ -406,6 +410,7 @@
             const response = await fetch(`/projects/${currentProject.id}/models/${id}/select`, { method: "POST" });
             if (!response.ok) return alert(`Unable to select model: ${(await response.json()).detail || response.statusText}`);
             await loadSelectedProject();
+            await showCompatibility();
         }
         async function selectSavedDataset() {
             const id = document.getElementById("savedDatasetSelect").value;
@@ -413,6 +418,25 @@
             const response = await fetch(`/projects/${currentProject.id}/datasets/${id}/select`, { method: "POST" });
             if (!response.ok) return alert(`Unable to select dataset: ${(await response.json()).detail || response.statusText}`);
             await loadSelectedProject();
+            await showCompatibility();
+        }
+
+        async function applyDatasetAction() {
+            if (!currentProject?.dataset_id) return alert("Select a dataset first");
+            const operation = document.getElementById("datasetAction").value;
+            const res = await fetch(`/datasets/${currentProject.dataset_id}/transform/${operation}`, { method: "POST" });
+            const data = await res.json();
+            if (!res.ok) return alert(data.detail || "Dataset action failed");
+            addChatMessage("assistant", `Dataset ${operation.replaceAll("_", " ")} completed: ${data.version.version}.`);
+            await loadSelectedProject();
+        }
+
+        async function showCompatibility() {
+            if (!currentProject?.model_id || !currentProject?.dataset_id) return;
+            const res = await fetch(`/projects/${currentProject.id}/compatibility`);
+            const result = await res.json();
+            const message = result.is_compatible ? "Model and dataset are compatible and ready to evaluate." : `Compatibility warning: ${result.issues.join(" ")}`;
+            addChatMessage("assistant", message);
         }
 
         async function loadBenchmarkPreset() {
@@ -516,6 +540,10 @@
                 const link = document.getElementById("mdDownloadLink");
                 link.href = `/reports/${latest.id}/download`;
                 link.style.display = "inline-block";
+                const report = await (await fetch(`/reports/${latest.id}`)).json();
+                document.getElementById("reportPreview").innerHTML = markdownToHtml(report.content_markdown);
+            } else {
+                document.getElementById("reportPreview").textContent = "Run an evaluation to view the latest report.";
             }
         }
 
@@ -561,6 +589,41 @@
             await loadVersions();
         }
 
+        async function showModelChooser() {
+            const res = await fetch("/models");
+            const models = await res.json();
+            addChatMessage("assistant", "Pick a model and I’ll show matching datasets.");
+            renderChoiceButtons(models.map(m => ({
+                label: `${m.name} (${m.framework})`,
+                run: () => selectModelFromChat(m.id, m.name)
+            })), "Saved models");
+        }
+
+        async function selectModelFromChat(modelId, modelName) {
+            if (!currentProject) return;
+            await fetch(`/projects/${currentProject.id}/models/${modelId}/select`, { method: "POST" });
+            await loadSelectedProject();
+            addChatMessage("assistant", `Selected ${modelName}. Fetching compatible datasets.`);
+            const res = await fetch(`/models/${modelId}/compatible-datasets`);
+            const data = await res.json();
+            if (!data.compatible_datasets || data.compatible_datasets.length === 0) {
+                addChatMessage("assistant", "No compatible datasets found for this model.");
+                return;
+            }
+            renderChoiceButtons((data.compatible_datasets || []).map(d => ({
+                label: `${d.name} (${d.current_version})`,
+                run: () => selectDatasetFromChat(d.id, d.name)
+            })), "Compatible datasets");
+        }
+
+        async function selectDatasetFromChat(datasetId, datasetName) {
+            if (!currentProject) return;
+            await fetch(`/projects/${currentProject.id}/datasets/${datasetId}/select`, { method: "POST" });
+            addChatMessage("assistant", `Selected ${datasetName}. You can evaluate now.`);
+            await loadSelectedProject();
+            await loadVersions();
+        }
+
         async function loadChatHistory() {
             if (!currentProject) return;
             const res = await fetch(`/projects/${currentProject.id}/chat/history`);
@@ -579,13 +642,38 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
+        function renderChoiceButtons(items, title) {
+            const chatBox = document.getElementById("chatBox");
+            const msgDiv = document.createElement("div");
+            msgDiv.className = "chat-msg chat-bot";
+            if (title) {
+                const head = document.createElement("div");
+                head.className = "small fw-semibold mb-2";
+                head.textContent = title;
+                msgDiv.appendChild(head);
+            }
+            items.forEach(item => {
+                const button = document.createElement("button");
+                button.className = "btn btn-sm btn-outline-primary me-2 mb-2";
+                button.textContent = item.label;
+                button.onclick = item.run;
+                msgDiv.appendChild(button);
+            });
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
         function renderQuickActions() {
             const container = document.getElementById("quickActions");
             container.innerHTML = "";
             quickActionLabels.forEach(([message, label]) => {
                 const button = document.createElement("button");
                 button.className = "btn btn-sm btn-outline-primary"; button.textContent = label;
-                button.onclick = () => { document.getElementById("chatInput").value = message; sendChatMessage(); };
+                button.onclick = () => {
+                    if (message === "Show model choices") return showModelChooser();
+                    document.getElementById("chatInput").value = message;
+                    sendChatMessage();
+                };
                 container.appendChild(button);
             });
         }
@@ -616,6 +704,11 @@
             const badge = document.getElementById("agentStatusBadge");
             badge.textContent = text;
             badge.className = `badge ${badgeClass}`;
+        }
+
+        function markdownToHtml(markdown) {
+            const escaped = markdown.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            return escaped.replace(/^### (.*)$/gm, "<h5>$1</h5>").replace(/^## (.*)$/gm, "<h4>$1</h4>").replace(/^# (.*)$/gm, "<h3>$1</h3>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/`([^`]+)`/g, "<code>$1</code>").replace(/^- (.*)$/gm, "<li>$1</li>").replace(/\n/g, "<br>");
         }
     </script>
 </body>

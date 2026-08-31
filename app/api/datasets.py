@@ -6,6 +6,12 @@ from datetime import datetime
 from app.services.project_service import project_service
 from app.datasets.versioning import dataset_version_manager
 from app.core.database import db
+from app.datasets.loader import dataset_loader
+from app.transformations.cleaner import data_cleaner
+from app.transformations.outliers import outlier_handler
+from app.transformations.balancer import data_balancer
+from app.transformations.scaler import data_scaler
+from app.datasets.validator import compatibility_validator
 
 router = APIRouter(tags=["datasets"])
 
@@ -45,3 +51,71 @@ def upload_project_dataset(project_id: str, file: UploadFile = File(...)):
 @router.get("/datasets/{dataset_id}/versions")
 def get_dataset_versions(dataset_id: str):
     return dataset_version_manager.list_versions(dataset_id)
+
+@router.post("/datasets/{dataset_id}/transform/{operation}")
+def transform_dataset(dataset_id: str, operation: str):
+    """Apply a safe, versioned dataset operation; the original is never changed."""
+    with db._get_connection() as conn:
+        row = conn.execute("SELECT current_version FROM datasets WHERE id = ?", (dataset_id,)).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    current_version = row["current_version"]
+    df = dataset_loader.load(dataset_version_manager.get_version_path(dataset_id, current_version))
+    target = df.columns[-1] if len(df.columns) else None
+    if operation == "clean":
+        transformed, meta = data_cleaner.handle_missing_values(df, target_column=target)
+    elif operation == "deduplicate":
+        transformed, meta = data_cleaner.remove_duplicates(df)
+    elif operation == "prune":
+        transformed, meta = outlier_handler.handle_outliers(df, "remove", target)
+    elif operation == "clip_outliers":
+        transformed, meta = outlier_handler.handle_outliers(df, "clip", target)
+    elif operation == "balance":
+        transformed, meta = data_balancer.balance_data(df, "smote", target)
+    elif operation == "scale":
+        transformed, meta = data_scaler.scale_data(df, "standard", target)
+    else:
+        raise HTTPException(status_code=400, detail="Unknown dataset operation")
+    version = dataset_version_manager.create_new_version(dataset_id, transformed, current_version, operation, meta)
+    return {"status": "success", "version": version.model_dump()}
+
+@router.get("/projects/{project_id}/compatibility")
+def check_project_compatibility(project_id: str):
+    project = project_service.get_project(project_id)
+    if not project or not project.model_id or not project.dataset_id:
+        raise HTTPException(status_code=400, detail="Select both a model and dataset first")
+    with db._get_connection() as conn:
+        model = conn.execute("SELECT file_path FROM models WHERE id = ?", (project.model_id,)).fetchone()
+        dataset = conn.execute("SELECT current_version FROM datasets WHERE id = ?", (project.dataset_id,)).fetchone()
+    return compatibility_validator.validate_compatibility(
+        model["file_path"], dataset_version_manager.get_version_path(project.dataset_id, dataset["current_version"]),
+        project.model_id, project.dataset_id, dataset["current_version"]
+    ).model_dump()
+
+@router.get("/models/{model_id}/compatible-datasets")
+def list_compatible_datasets(model_id: str):
+    with db._get_connection() as conn:
+        model = conn.execute("SELECT id, name, file_path FROM models WHERE id = ?", (model_id,)).fetchone()
+        if not model:
+            raise HTTPException(status_code=404, detail="Model not found")
+        datasets = conn.execute("SELECT id, name, current_version FROM datasets ORDER BY created_at DESC").fetchall()
+
+    compatible = []
+    for dataset in datasets:
+        dataset_path = dataset_version_manager.get_version_path(dataset["id"], dataset["current_version"])
+        result = compatibility_validator.validate_compatibility(
+            model["file_path"],
+            dataset_path,
+            model["id"],
+            dataset["id"],
+            dataset["current_version"]
+        )
+        if result.is_compatible:
+            compatible.append({
+                "id": dataset["id"],
+                "name": dataset["name"],
+                "current_version": dataset["current_version"],
+                "warnings": result.warnings
+            })
+
+    return {"model_id": model_id, "compatible_datasets": compatible}
