@@ -30,6 +30,26 @@ def handle_project_chat(project_id: str, payload: ChatRequest):
         )
         conn.commit()
 
+    # A greeting is deliberately handled locally: it should be immediate and
+    # always present the same actionable choices, even when the LLM is offline.
+    if user_msg.lower() in {"hi", "hello", "hey", "hii"}:
+        reply_text = (
+            "Hi! I can help you with:\n"
+            "• Evaluate your model and dataset\n"
+            "• Inspect model/dataset details\n"
+            "• Clean missing values\n"
+            "• Balance an imbalanced dataset\n"
+            "• Review project history\n\n"
+            "Choose one of the action buttons below, or type what you need."
+        )
+        with db._get_connection() as conn:
+            conn.execute(
+                "INSERT INTO chat_messages (id, project_id, sender, message, created_at) VALUES (?, ?, ?, ?, ?)",
+                (f"msg_bot_{datetime.utcnow().strftime('%Y%m%d_%H%M%S_%f')}", project_id, "assistant", reply_text, datetime.utcnow().isoformat())
+            )
+            conn.commit()
+        return ChatResponse(message=reply_text, status="completed", actions_taken=[])
+
     # Determine if this is an execution request or conversational query
     is_action_prompt = any(k in user_msg.lower() for k in [
         "evaluate", "improve", "balance", "transform", "run", "clean", "fix", "inspect", "start", "do it"
@@ -82,7 +102,8 @@ def handle_project_chat(project_id: str, payload: ChatRequest):
                 status="completed",
                 actions_taken=action_names,
                 current_dataset_version=final_state.current_dataset_version,
-                metrics_summary=final_state.latest_metrics
+                metrics_summary=final_state.latest_metrics,
+                robustness_metrics=final_state.robustness_metrics
             )
 
     # Conversational Q&A / Memory Retrieval
@@ -114,4 +135,3 @@ def get_chat_history(project_id: str):
         cursor.execute("SELECT * FROM chat_messages WHERE project_id = ? ORDER BY created_at ASC", (project_id,))
         rows = cursor.fetchall()
         return [{"id": r["id"], "sender": r["sender"], "message": r["message"], "created_at": r["created_at"]} for r in rows]
-

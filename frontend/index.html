@@ -84,15 +84,17 @@
             letter-spacing: 0.5px;
         }
         .report-preview {
-            background: #0f172a;
-            color: #f8fafc;
+            background: #ffffff;
+            color: #334155;
             padding: 16px;
             border-radius: 8px;
             max-height: 450px;
             overflow-y: auto;
             font-family: Consolas, monospace;
             font-size: 0.88rem;
+            border: 1px solid var(--border-color);
         }
+        .asset-selection { background: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; }
         .preset-banner {
             background: #eff6ff;
             border: 1px solid #bfdbfe;
@@ -184,6 +186,11 @@
                         <button class="btn btn-sm btn-outline-primary w-100" onclick="uploadModel()">
                             <i class="bi bi-upload me-1"></i>Upload Model (.pkl, .joblib, .pt, .onnx)
                         </button>
+                        <div class="asset-selection mt-3">
+                            <label class="form-label small fw-semibold mb-1">Use a previously added model</label>
+                            <div class="input-group input-group-sm"><select id="savedModelSelect" class="form-select"><option value="">No saved models</option></select><button class="btn btn-outline-secondary" onclick="selectSavedModel()">Use</button></div>
+                            <div id="selectedModelName" class="small text-muted mt-2">No model selected.</div>
+                        </div>
                         <div id="modelMetaBox" class="mt-2 text-muted small" style="display: none;"></div>
                     </div>
                 </div>
@@ -201,6 +208,11 @@
                         <button class="btn btn-sm btn-outline-primary w-100" onclick="uploadDataset()">
                             <i class="bi bi-upload me-1"></i>Upload Dataset (.csv, .parquet, .json)
                         </button>
+                        <div class="asset-selection mt-3">
+                            <label class="form-label small fw-semibold mb-1">Use a previously added dataset</label>
+                            <div class="input-group input-group-sm"><select id="savedDatasetSelect" class="form-select"><option value="">No saved datasets</option></select><button class="btn btn-outline-secondary" onclick="selectSavedDataset()">Use</button></div>
+                            <div id="selectedDatasetName" class="small text-muted mt-2">No dataset selected.</div>
+                        </div>
                         <div id="datasetMetaBox" class="mt-2 text-muted small" style="display: none;"></div>
                     </div>
                 </div>
@@ -231,6 +243,7 @@
                                 Welcome! Select a Benchmark Preset (like 🌸 Iris) or upload custom files. Ask me to evaluate, inspect, clean, or balance your dataset!
                             </div>
                         </div>
+                        <div id="quickActions" class="d-flex flex-wrap gap-2 mb-3"></div>
 
                         <!-- Actions Log -->
                         <div class="mb-2">
@@ -248,32 +261,18 @@
                 </div>
             </div>
 
-            <!-- Right Column: Metrics & Evaluation Report -->
+            <!-- Right Column: Noise comparison chart & Markdown report -->
             <div class="col-md-3">
-                <!-- Live Metric Summary -->
                 <div class="card">
-                    <div class="card-header">
-                        <i class="bi bi-speedometer2 me-2"></i>Performance Delta
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-bar-chart-line me-2"></i>Noise Comparison</span>
+                        <select id="metricSelect" class="form-select form-select-sm" style="width: 135px;" onchange="renderNoiseChart()">
+                            <option value="accuracy">Accuracy</option><option value="precision_macro">Precision</option><option value="recall_macro">Recall</option><option value="f1_macro">Macro F1</option>
+                        </select>
                     </div>
-                    <div class="card-body text-center">
-                        <div class="row g-2">
-                            <div class="col-6 p-2 border-end">
-                                <div class="metric-label">Baseline Acc</div>
-                                <div class="metric-badge" id="baseAcc">-</div>
-                            </div>
-                            <div class="col-6 p-2">
-                                <div class="metric-label">Final Acc</div>
-                                <div class="metric-badge text-success" id="finalAcc">-</div>
-                            </div>
-                            <div class="col-6 p-2 border-end border-top">
-                                <div class="metric-label">Baseline F1</div>
-                                <div class="metric-badge" id="baseF1">-</div>
-                            </div>
-                            <div class="col-6 p-2 border-top">
-                                <div class="metric-label">Final F1</div>
-                                <div class="metric-badge text-success" id="finalF1">-</div>
-                            </div>
-                        </div>
+                    <div class="card-body">
+                        <canvas id="noiseComparisonChart" aria-label="Clean and noisy model comparison"></canvas>
+                        <div id="chartEmptyState" class="small text-muted text-center mt-2">Run an evaluation to see clean versus noisy model results.</div>
                     </div>
                 </div>
 
@@ -284,9 +283,6 @@
                         <a id="mdDownloadLink" href="#" class="btn btn-sm btn-outline-primary" style="display: none;">
                             <i class="bi bi-download me-1"></i>Download .md
                         </a>
-                    </div>
-                    <div class="card-body p-2">
-                        <div id="reportBox" class="report-preview">No report generated yet. Run evaluation to create report.</div>
                     </div>
                 </div>
             </div>
@@ -320,11 +316,16 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script>
         let currentProject = null;
+        let noiseMetrics = null;
+        let noiseChart = null;
+        const quickActionLabels = [["Evaluate my model and dataset", "Evaluate"], ["Inspect my model and dataset", "Inspect"], ["Clean missing values in my dataset", "Clean data"], ["Balance my dataset", "Balance data"], ["Show my project history", "Project history"]];
 
         window.onload = async () => {
             await fetchProjects();
+            renderQuickActions();
         };
 
         async function fetchProjects() {
@@ -379,9 +380,39 @@
 
             document.getElementById("runEvalBtn").disabled = !(currentProject.model_id && currentProject.dataset_id);
 
+            await loadSavedAssets();
             await loadVersions();
             await loadReports();
             await loadChatHistory();
+        }
+
+        async function loadSavedAssets() {
+            const [modelsRes, datasetsRes] = await Promise.all([fetch("/models"), fetch("/datasets")]);
+            const models = await modelsRes.json(), datasets = await datasetsRes.json();
+            populateAssetSelect("savedModelSelect", models, currentProject.model_id, m => `${m.name} (${m.framework})`);
+            populateAssetSelect("savedDatasetSelect", datasets, currentProject.dataset_id, d => `${d.name} (${d.current_version})`);
+            const model = models.find(m => m.id === currentProject.model_id), dataset = datasets.find(d => d.id === currentProject.dataset_id);
+            document.getElementById("selectedModelName").textContent = model ? `Selected: ${model.name}` : "No model selected.";
+            document.getElementById("selectedDatasetName").textContent = dataset ? `Selected: ${dataset.name}` : "No dataset selected.";
+        }
+        function populateAssetSelect(id, assets, selectedId, label) {
+            const select = document.getElementById(id);
+            select.innerHTML = `<option value="">Select saved ${id.includes("Model") ? "model" : "dataset"}...</option>`;
+            assets.forEach(asset => { const option = document.createElement("option"); option.value = asset.id; option.textContent = label(asset); option.selected = asset.id === selectedId; select.appendChild(option); });
+        }
+        async function selectSavedModel() {
+            const id = document.getElementById("savedModelSelect").value;
+            if (!id || !currentProject) return;
+            const response = await fetch(`/projects/${currentProject.id}/models/${id}/select`, { method: "POST" });
+            if (!response.ok) return alert(`Unable to select model: ${(await response.json()).detail || response.statusText}`);
+            await loadSelectedProject();
+        }
+        async function selectSavedDataset() {
+            const id = document.getElementById("savedDatasetSelect").value;
+            if (!id || !currentProject) return;
+            const response = await fetch(`/projects/${currentProject.id}/datasets/${id}/select`, { method: "POST" });
+            if (!response.ok) return alert(`Unable to select dataset: ${(await response.json()).detail || response.statusText}`);
+            await loadSelectedProject();
         }
 
         async function loadBenchmarkPreset() {
@@ -482,9 +513,6 @@
             const reports = await res.json();
             if (reports.length > 0) {
                 const latest = reports[0];
-                const detailRes = await fetch(`/reports/${latest.id}`);
-                const detail = await detailRes.json();
-                document.getElementById("reportBox").textContent = detail.content_markdown;
                 const link = document.getElementById("mdDownloadLink");
                 link.href = `/reports/${latest.id}/download`;
                 link.style.display = "inline-block";
@@ -503,14 +531,8 @@
             addChatMessage("assistant", `Evaluation complete! Actions taken: ${data.actions_taken.join(" -> ")}`);
             updateActionsLog(data.actions_taken);
 
-            if (data.baseline_metrics) {
-                document.getElementById("baseAcc").textContent = data.baseline_metrics.accuracy ? (data.baseline_metrics.accuracy * 100).toFixed(1) + "%" : "N/A";
-                document.getElementById("baseF1").textContent = data.baseline_metrics.f1_macro ? (data.baseline_metrics.f1_macro * 100).toFixed(1) + "%" : "N/A";
-            }
-            if (data.latest_metrics) {
-                document.getElementById("finalAcc").textContent = data.latest_metrics.accuracy ? (data.latest_metrics.accuracy * 100).toFixed(1) + "%" : "N/A";
-                document.getElementById("finalF1").textContent = data.latest_metrics.f1_macro ? (data.latest_metrics.f1_macro * 100).toFixed(1) + "%" : "N/A";
-            }
+            noiseMetrics = data.robustness_metrics || null;
+            renderNoiseChart();
 
             await loadVersions();
             await loadReports();
@@ -534,6 +556,7 @@
             setAgentStatus("Completed", "bg-success");
             addChatMessage("assistant", data.message);
             if (data.actions_taken) updateActionsLog(data.actions_taken);
+            if (data.robustness_metrics) { noiseMetrics = data.robustness_metrics; renderNoiseChart(); }
             await loadReports();
             await loadVersions();
         }
@@ -554,6 +577,28 @@
             msgDiv.textContent = text;
             chatBox.appendChild(msgDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function renderQuickActions() {
+            const container = document.getElementById("quickActions");
+            container.innerHTML = "";
+            quickActionLabels.forEach(([message, label]) => {
+                const button = document.createElement("button");
+                button.className = "btn btn-sm btn-outline-primary"; button.textContent = label;
+                button.onclick = () => { document.getElementById("chatInput").value = message; sendChatMessage(); };
+                container.appendChild(button);
+            });
+        }
+
+        function renderNoiseChart() {
+            const empty = document.getElementById("chartEmptyState"), canvas = document.getElementById("noiseComparisonChart");
+            const metric = document.getElementById("metricSelect").value;
+            const clean = noiseMetrics && noiseMetrics.clean_metrics && noiseMetrics.clean_metrics[metric];
+            const noisy = noiseMetrics && noiseMetrics.noisy_metrics && noiseMetrics.noisy_metrics[metric];
+            if (clean === undefined || noisy === undefined) { empty.style.display = "block"; if (noiseChart) { noiseChart.destroy(); noiseChart = null; } return; }
+            empty.style.display = "none";
+            if (noiseChart) noiseChart.destroy();
+            noiseChart = new Chart(canvas, { type: "bar", data: { labels: ["Without noise", "With Gaussian noise"], datasets: [{ label: document.getElementById("metricSelect").selectedOptions[0].text, data: [clean * 100, noisy * 100], backgroundColor: ["#2563eb", "#f97316"], borderRadius: 5 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, ticks: { callback: value => `${value}%` } } } } });
         }
 
         function updateActionsLog(actions) {

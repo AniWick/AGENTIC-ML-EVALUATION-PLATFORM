@@ -36,6 +36,9 @@ class RobustnessMetrics(BaseModel):
     score_drop: float
     drop_percentage: float
     is_sensitive: bool
+    # Full clean/noisy metric pairs power the dashboard comparison chart.
+    clean_metrics: Dict[str, float] = Field(default_factory=dict)
+    noisy_metrics: Dict[str, float] = Field(default_factory=dict)
 
 class EvaluationResult(BaseModel):
     evaluation_id: str
@@ -56,4 +59,3 @@ class ComparisonResult(BaseModel):
     metric_deltas: Dict[str, float]
     summary_of_changes: List[str]
     is_improved: bool
-

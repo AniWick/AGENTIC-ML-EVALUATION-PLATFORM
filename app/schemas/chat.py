@@ -13,4 +13,4 @@ class ChatResponse(BaseModel):
     experiment_id: Optional[str] = None
     report_id: Optional[str] = None
     metrics_summary: Optional[Dict[str, Any]] = None
-
+    robustness_metrics: Optional[Dict[str, Any]] = None

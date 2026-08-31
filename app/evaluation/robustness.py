@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from typing import Dict, Any, Optional
-from sklearn.metrics import accuracy_score, f1_score, mean_squared_error
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, mean_squared_error
 from app.models.predictor import model_predictor
 from app.datasets.loader import dataset_loader
 from app.schemas.evaluation import RobustnessMetrics
@@ -28,7 +28,13 @@ class RobustnessEvaluator:
         # Baseline score
         preds_clean = model_predictor.predict(model_path, X)
         if task_type == "classification":
-            orig_score = float(accuracy_score(y_true, preds_clean))
+            clean_metrics = {
+                "accuracy": float(accuracy_score(y_true, preds_clean)),
+                "precision_macro": float(precision_score(y_true, preds_clean, average="macro", zero_division=0)),
+                "recall_macro": float(recall_score(y_true, preds_clean, average="macro", zero_division=0)),
+                "f1_macro": float(f1_score(y_true, preds_clean, average="macro", zero_division=0)),
+            }
+            orig_score = clean_metrics["accuracy"]
         else:
             orig_score = float(-mean_squared_error(y_true, preds_clean))
 
@@ -41,12 +47,20 @@ class RobustnessEvaluator:
         preds_noisy = model_predictor.predict(model_path, X_perturbed)
         if task_type == "classification":
             perturbed_score = float(accuracy_score(y_true, preds_noisy))
+            noisy_metrics = {
+                "accuracy": perturbed_score,
+                "precision_macro": float(precision_score(y_true, preds_noisy, average="macro", zero_division=0)),
+                "recall_macro": float(recall_score(y_true, preds_noisy, average="macro", zero_division=0)),
+                "f1_macro": float(f1_score(y_true, preds_noisy, average="macro", zero_division=0)),
+            }
             score_drop = orig_score - perturbed_score
             drop_percentage = float((score_drop / orig_score) * 100) if orig_score > 0 else 0.0
         else:
             perturbed_score = float(-mean_squared_error(y_true, preds_noisy))
             score_drop = orig_score - perturbed_score
             drop_percentage = float(abs(score_drop))
+            clean_metrics = {"score": orig_score}
+            noisy_metrics = {"score": perturbed_score}
 
         is_sensitive = drop_percentage > 10.0 # Sensitive if >10% relative drop
 
@@ -57,8 +71,9 @@ class RobustnessEvaluator:
             perturbed_score=perturbed_score,
             score_drop=score_drop,
             drop_percentage=drop_percentage,
-            is_sensitive=is_sensitive
+            is_sensitive=is_sensitive,
+            clean_metrics=clean_metrics,
+            noisy_metrics=noisy_metrics,
         )
 
 robustness_evaluator = RobustnessEvaluator()
-

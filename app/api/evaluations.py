@@ -44,8 +44,8 @@ def run_project_evaluation(project_id: str):
         "status": final_state.status,
         "baseline_metrics": final_state.baseline_metrics,
         "latest_metrics": final_state.latest_metrics,
+        "robustness_metrics": final_state.robustness_metrics,
         "transformations": final_state.transformations_applied,
         "actions_taken": [a.action for a in final_state.actions_taken],
         "current_dataset_version": final_state.current_dataset_version
     }
-
