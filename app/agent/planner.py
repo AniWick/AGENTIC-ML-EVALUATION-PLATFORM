@@ -1,12 +1,14 @@
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from app.agent.state import AgentState
 from app.agent.tools import tool_registry
 from app.llm.ollama_client import ollama_client
 from app.llm.prompts import AGENT_SYSTEM_PROMPT
 
+
 class Decision:
-    def __init__(self, action: str, parameters: Dict[str, Any], reason: str, status: str = "continue"):
+    def __init__(self, action: str, parameters: Dict[str, Any],
+                 reason: str, status: str = "continue"):
         self.action = action
         self.parameters = parameters
         self.reason = reason
@@ -17,15 +19,19 @@ class Decision:
             "status": self.status,
             "action": self.action,
             "parameters": self.parameters,
-            "reason": self.reason
+            "reason": self.reason,
         }
 
+
 class AgentPlanner:
-    """Decides the next tool to run based on current observations, goals, and state."""
+    """State-gated planner.
+
+    The LLM can recommend an action, but it cannot bypass workflow
+    prerequisites or repeatedly execute a completed action.
+    """
 
     @staticmethod
     def decide_next_step(state: AgentState) -> Decision:
-        # Build compact context
         context_str = state.get_summary_context()
         tool_defs = json.dumps(tool_registry.get_tool_definitions(), indent=2)
 
@@ -33,40 +39,125 @@ class AgentPlanner:
             f"CURRENT STATE CONTEXT:\n{context_str}\n\n"
             f"AVAILABLE TOOLS:\n{tool_defs}\n\n"
             f"USER OBJECTIVE: {state.user_goal}\n\n"
-            f"Determine the single next best action to perform. Respond with valid JSON only."
+            "Determine the single next best action. Respond with valid JSON only."
         )
 
-        # 1. Try Ollama LLM structured decision
-        llm_decision = ollama_client.generate_json(prompt=prompt, system=AGENT_SYSTEM_PROMPT)
-        if llm_decision and "action" in llm_decision and llm_decision["action"] in tool_registry.tools:
+        llm_decision = ollama_client.generate_json(
+            prompt=prompt,
+            system=AGENT_SYSTEM_PROMPT
+        )
+
+        # FIX: the old code trusted any valid LLM action. If Ollama kept
+        # returning inspect_model, the same tool ran until max_iterations.
+        # The LLM is now advisory; state-machine legality is authoritative.
+        if llm_decision and llm_decision.get("action") in tool_registry.tools:
             action = llm_decision["action"]
-            params = llm_decision.get("parameters", {})
-            reason = llm_decision.get("reason", "LLM reasoning step")
-            status = llm_decision.get("status", "continue")
+            if AgentPlanner._is_action_legal(action, state):
+                params = AgentPlanner._validate_and_fill_params(
+                    action, llm_decision.get("parameters", {}), state
+                )
+                return Decision(
+                    action=action,
+                    parameters=params,
+                    reason=llm_decision.get("reason", "LLM recommended next step."),
+                    status=llm_decision.get("status", "continue")
+                )
 
-            # Validate parameters against state
-            validated_params = AgentPlanner._validate_and_fill_params(action, params, state)
-            return Decision(action=action, parameters=validated_params, reason=reason, status=status)
-
-        # 2. Fallback to Deterministic Expert Planning System
         return AgentPlanner._deterministic_fallback_plan(state)
 
     @staticmethod
-    def _validate_and_fill_params(action: str, params: Dict[str, Any], state: AgentState) -> Dict[str, Any]:
-        """Ensures tool parameters match state (e.g. paths, versions)."""
+    def _is_action_legal(action: str, state: AgentState) -> bool:
+        rules = {
+            "inspect_model": not state.is_model_inspected,
+
+            "inspect_dataset": (
+                state.is_model_inspected and not state.is_dataset_inspected
+            ),
+
+            "validate_model_dataset": (
+                state.is_model_inspected
+                and state.is_dataset_inspected
+                and not state.is_compatibility_validated
+            ),
+
+            "evaluate_performance": (
+                state.is_compatibility_validated
+                and (
+                    not state.is_baseline_evaluated
+                    or state.evaluated_dataset_version != state.current_dataset_version
+                )
+            ),
+
+            "evaluate_data_quality": (
+                state.is_baseline_evaluated
+                and not state.is_data_quality_evaluated
+            ),
+
+            "evaluate_robustness": (
+                state.is_data_quality_evaluated
+                and not state.is_robustness_evaluated
+            ),
+
+            "handle_missing_values": (
+                state.is_robustness_evaluated
+                and (state.data_quality_metrics or {}).get("missing_values_count", 0) > 0
+                and "handle_missing_values" not in state.transformations_applied
+            ),
+
+            "balance_data": (
+                state.is_robustness_evaluated
+                and (state.data_quality_metrics or {}).get(
+                    "class_imbalance_detected", False
+                )
+                and "balance_data" not in state.transformations_applied
+            ),
+
+            "save_experiment": (
+                bool(state.transformations_applied)
+                and state.latest_metrics is not None
+                and state.evaluated_dataset_version == state.current_dataset_version
+                and not state.experiments
+            ),
+
+            "generate_report": (
+                state.is_baseline_evaluated
+                and state.is_data_quality_evaluated
+                and state.is_robustness_evaluated
+                and state.evaluated_dataset_version == state.current_dataset_version
+                and (
+                    not state.transformations_applied or bool(state.experiments)
+                )
+            ),
+        }
+        return rules.get(action, False)
+
+    @staticmethod
+    def _validate_and_fill_params(action: str, params: Dict[str, Any],
+                                  state: AgentState) -> Dict[str, Any]:
         p = dict(params)
-        if action in ["inspect_model", "validate_model_dataset", "evaluate_performance", "evaluate_robustness"]:
+
+        if action in [
+            "inspect_model", "validate_model_dataset",
+            "evaluate_performance", "evaluate_robustness"
+        ]:
             p.setdefault("model_path", state.model_path)
             p.setdefault("model_id", state.model_id)
 
-        if action in ["inspect_dataset", "validate_model_dataset", "evaluate_performance", "evaluate_data_quality", "evaluate_robustness"]:
+        if action in [
+            "inspect_dataset", "validate_model_dataset",
+            "evaluate_performance", "evaluate_data_quality",
+            "evaluate_robustness"
+        ]:
             p.setdefault("dataset_path", state.dataset_path)
             p.setdefault("dataset_id", state.dataset_id)
             p.setdefault("version", state.current_dataset_version)
             if state.target_column:
                 p.setdefault("target_column", state.target_column)
 
-        if action in ["handle_missing_values", "balance_data", "handle_outliers", "scale_data", "add_gaussian_noise"]:
+        if action in [
+            "handle_missing_values", "balance_data",
+            "handle_outliers", "scale_data", "add_gaussian_noise"
+        ]:
             p.setdefault("dataset_id", state.dataset_id)
             p.setdefault("current_version", state.current_dataset_version)
             if state.target_column:
@@ -83,107 +174,147 @@ class AgentPlanner:
 
     @staticmethod
     def _deterministic_fallback_plan(state: AgentState) -> Decision:
-        """Deterministic state-machine planner guaranteeing end-to-end completion."""
-        # 1. Inspect Model
         if not state.is_model_inspected:
             return Decision(
-                action="inspect_model",
-                parameters={"model_path": state.model_path, "model_id": state.model_id},
-                reason="Inspect model framework, input requirements, and parameter architecture first."
+                "inspect_model",
+                {"model_path": state.model_path, "model_id": state.model_id},
+                "Inspect model first."
             )
 
-        # 2. Inspect Dataset
         if not state.is_dataset_inspected:
             return Decision(
-                action="inspect_dataset",
-                parameters={"dataset_path": state.dataset_path, "dataset_id": state.dataset_id, "version": state.current_dataset_version, "target_col": state.target_column},
-                reason="Inspect dataset features, missingness, duplicates, and initial class balance."
+                "inspect_dataset",
+                {
+                    "dataset_path": state.dataset_path,
+                    "dataset_id": state.dataset_id,
+                    "version": state.current_dataset_version,
+                    "target_col": state.target_column,
+                },
+                "Inspect dataset and determine its structure and target."
             )
 
-        # 3. Validate Compatibility
         if not state.is_compatibility_validated:
             return Decision(
-                action="validate_model_dataset",
-                parameters={"model_path": state.model_path, "dataset_path": state.dataset_path, "model_id": state.model_id, "dataset_id": state.dataset_id, "version": state.current_dataset_version},
-                reason="Verify feature shape and target compatibility between model and dataset."
+                "validate_model_dataset",
+                {
+                    "model_path": state.model_path,
+                    "dataset_path": state.dataset_path,
+                    "model_id": state.model_id,
+                    "dataset_id": state.dataset_id,
+                    "version": state.current_dataset_version,
+                },
+                "Validate model/dataset compatibility."
             )
 
-        # 4. Evaluate Baseline Performance
         if not state.is_baseline_evaluated:
             return Decision(
-                action="evaluate_performance",
-                parameters={"model_path": state.model_path, "dataset_path": state.dataset_path, "target_column": state.target_column, "task_type": state.task_type},
-                reason="Establish baseline model performance metrics on original unperturbed dataset."
+                "evaluate_performance",
+                {
+                    "model_path": state.model_path,
+                    "dataset_path": state.dataset_path,
+                    "target_column": state.target_column,
+                    "task_type": state.task_type,
+                },
+                "Calculate deterministic baseline metrics."
             )
 
-        # 5. Evaluate Data Quality
         if not state.is_data_quality_evaluated:
             return Decision(
-                action="evaluate_data_quality",
-                parameters={"dataset_path": state.dataset_path, "target_column": state.target_column},
-                reason="Perform formal data quality audit to detect issues needing transformation."
+                "evaluate_data_quality",
+                {
+                    "dataset_path": state.dataset_path,
+                    "target_column": state.target_column,
+                },
+                "Audit missing values, imbalance, duplicates and outliers."
             )
 
-        # 6. Evaluate Robustness
         if not state.is_robustness_evaluated:
             return Decision(
-                action="evaluate_robustness",
-                parameters={"model_path": state.model_path, "dataset_path": state.dataset_path, "target_column": state.target_column, "noise_level": 0.10},
-                reason="Benchmark model robustness against input perturbations."
+                "evaluate_robustness",
+                {
+                    "model_path": state.model_path,
+                    "dataset_path": state.dataset_path,
+                    "target_column": state.target_column,
+                    "noise_level": 0.10,
+                },
+                "Benchmark robustness to Gaussian noise."
             )
 
-        # 7. Check if problems require transformation
         dq = state.data_quality_metrics or {}
-        
-        # Check Missing Values
-        if dq.get("missing_values_count", 0) > 0 and "handle_missing_values" not in state.transformations_applied:
+
+        if (
+            dq.get("missing_values_count", 0) > 0
+            and "handle_missing_values" not in state.transformations_applied
+        ):
             return Decision(
-                action="handle_missing_values",
-                parameters={"dataset_id": state.dataset_id, "current_version": state.current_dataset_version, "strategy": "median", "target_column": state.target_column},
-                reason="Impute missing feature values detected in the data quality audit."
+                "handle_missing_values",
+                {
+                    "dataset_id": state.dataset_id,
+                    "current_version": state.current_dataset_version,
+                    "strategy": "median",
+                    "target_column": state.target_column,
+                },
+                "Create a new version with missing values imputed."
             )
 
-        # Check Class Imbalance
-        if dq.get("class_imbalance_detected", False) and "balance_data" not in state.transformations_applied:
+        if (
+            dq.get("class_imbalance_detected", False)
+            and "balance_data" not in state.transformations_applied
+        ):
             return Decision(
-                action="balance_data",
-                parameters={"dataset_id": state.dataset_id, "current_version": state.current_dataset_version, "method": "smote", "target_column": state.target_column},
-                reason="Detected severe class imbalance. Applying SMOTE to rebalance classes and improve minority F1."
+                "balance_data",
+                {
+                    "dataset_id": state.dataset_id,
+                    "current_version": state.current_dataset_version,
+                    "method": "smote",
+                    "target_column": state.target_column,
+                },
+                "Create a new version with class imbalance addressed using SMOTE."
             )
 
-        # 8. Re-evaluate if we applied transformations and haven't evaluated latest version
-        if len(state.transformations_applied) > 0 and state.current_dataset_version != "v001" and state.latest_metrics == state.baseline_metrics:
+        # FIX: compare versions, not dictionaries. Every newly transformed
+        # version must receive fresh performance metrics.
+        if state.evaluated_dataset_version != state.current_dataset_version:
             return Decision(
-                action="evaluate_performance",
-                parameters={"model_path": state.model_path, "dataset_path": state.dataset_path, "target_column": state.target_column, "task_type": state.task_type},
-                reason="Re-evaluate model performance on newly transformed dataset version."
+                "evaluate_performance",
+                {
+                    "model_path": state.model_path,
+                    "dataset_path": state.dataset_path,
+                    "target_column": state.target_column,
+                    "task_type": state.task_type,
+                },
+                f"Re-evaluate performance on {state.current_dataset_version}."
             )
 
-        # 9. Compare results if experiment occurred
-        if state.latest_metrics and state.latest_metrics != state.baseline_metrics and len(state.experiments) == 0:
+        if state.transformations_applied and not state.experiments:
             return Decision(
-                action="save_experiment",
-                parameters={
+                "save_experiment",
+                {
                     "project_id": state.project_id,
                     "model_id": state.model_id,
-                    "operation": state.transformations_applied[-1] if state.transformations_applied else "transformation",
+                    "operation": ", ".join(state.transformations_applied),
                     "parameters": {},
                     "input_dataset_version": "v001",
                     "output_dataset_version": state.current_dataset_version,
-                    "metrics_before": state.baseline_metrics,
-                    "metrics_after": state.latest_metrics,
-                    "agent_reasoning": "Transformation was performed to resolve detected data quality issues."
+                    "metrics_before": state.baseline_metrics or {},
+                    "metrics_after": state.latest_metrics or {},
+                    "agent_reasoning": (
+                        "Transformations were selected from the data-quality audit "
+                        "and the resulting dataset version was re-evaluated."
+                    ),
                 },
-                reason="Persist experiment comparison and outcome to memory."
+                "Persist the experiment and exact metric deltas."
             )
 
-        # 10. Finish and Generate Report
         return Decision(
-            action="generate_report",
-            parameters={"project_id": state.project_id, "title": f"Evaluation Report - {state.project_id}"},
-            reason="User objective satisfied. Compiling final evaluation report.",
+            "generate_report",
+            {
+                "project_id": state.project_id,
+                "title": f"Evaluation Report - {state.project_id}",
+            },
+            "All evaluation and improvement steps are complete; generate the final report.",
             status="complete"
         )
 
-agent_planner = AgentPlanner()
 
+agent_planner = AgentPlanner()
