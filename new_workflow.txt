@@ -1,0 +1,1972 @@
+================================================================================
+AGENTIC ML EVALUATION PLATFORM - SYSTEM & EXECUTION WORKFLOW
+============================================================
+
+# Last Updated: 2026-09-04
+
+This document describes the complete architecture, request routing, agent
+decision cycle, deterministic evaluation engine, state management, memory,
+versioning, and reporting workflow of the Agentic ML Evaluation Platform.
+
+The platform uses a HYBRID AGENTIC ARCHITECTURE:
+
+1. User intent determines WHAT kind of task is being requested.
+2. Python determines WHICH operations are legal and authoritative.
+3. Qwen assists with intent classification, planning, and natural-language
+   reasoning.
+4. Deterministic Python tools calculate all metrics and perform all mutations.
+5. AgentState maintains the authoritative execution state.
+6. ChromaDB is used for semantic recall of historical experiments.
+7. SQLite remains the authoritative persistent project database.
+
+IMPORTANT ARCHITECTURAL PRINCIPLE:
+
+The full deterministic evaluation pipeline remains available as the reliable
+backbone of the system.
+
+However, a narrow informational request MUST NOT automatically trigger the
+entire evaluation pipeline.
+
+For example:
+
+```
+"Inspect my model and dataset"
+    -> inspection flow only
+
+"What were the baseline metrics before any transformation?"
+    -> baseline information flow only
+
+"Evaluate my model and dataset"
+    -> full deterministic evaluation flow
+
+"Improve my dataset"
+    -> evaluation + targeted transformations + re-evaluation
+
+"Did SMOTE help?"
+    -> comparison / historical-result flow
+```
+
+================================================================================
+
+1. HIGH-LEVEL ARCHITECTURE
+   ================================================================================
+
+   ```
+                      +--------------------------+
+                      |   USER / WEB DASHBOARD   |
+                      | (Upload, Presets, Chat)  |
+                      +-------------+------------+
+                                    |
+                                    v
+                      +--------------------------+
+                      |     FASTAPI BACKEND      |
+                      |   REST + Chat Router     |
+                      +-------------+------------+
+                                    |
+                                    v
+                +--------------------------------------+
+                |       REQUEST ROUTING LAYER           |
+                |                                      |
+                |  Intent Classification                |
+                |  Request Scope Detection              |
+                |  Deterministic Routing                |
+                +-------------------+------------------+
+                                    |
+             +----------------------+----------------------+
+             |                      |                      |
+             v                      v                      v
+    +----------------+    +-------------------+   +-------------------+
+    | INFORMATION    |    | DETERMINISTIC     |   | CONTEXTUAL /      |
+    | FLOWS          |    | WORKFLOWS         |   | COMPARISON        |
+    |                |    |                   |   |                   |
+    | Inspect        |    | Full Evaluation   |   | Historical Q&A    |
+    | Baseline       |    | Improve Dataset   |   | Compare Results   |
+    | Quality        |    | Specific Action   |   | Recommendations  |
+    | Robustness     |    |                   |   |                   |
+    +-------+--------+    +---------+---------+   +---------+---------+
+            |                       |                       |
+            +-----------------------+-----------------------+
+                                    |
+                                    v
+                +--------------------------------------+
+                |          CORE AGENTIC ENGINE           |
+                |                                      |
+                |  AgentState                           |
+                |  AgentPlanner                         |
+                |  AgentRunner                          |
+                |  ToolRegistry                         |
+                |  Qwen Planner                         |
+                +-------------------+------------------+
+                                    |
+   +--------------------------------+--------------------------------+
+   |                                |                                |
+   v                                v                                v
+   ```
+
++--------------+               +------------------+             +-----------------+
+| MODEL TOOLS  |               | DATASET TOOLS    |             | EVALUATION &    |
+|              |               |                  |             | TRANSFORMATIONS |
+| Loader       |               | Loader           |             | Performance     |
+| Inspector    |               | Inspector        |             | Data Quality    |
+| Validator    |               | Versioning       |             | Robustness      |
+| Predictor    |               | Profiler         |             | Cleaner         |
+| Adapters     |               | Compatibility    |             | SMOTE           |
++------+-------+               +--------+---------+             | Outliers        |
+|                                |                       | Scaling         |
+|                                |                       | Noise           |
+|                                |                       +--------+--------+
++--------------------------------+--------------------------------+
+|
+v
++--------------------------------------+
+|          STORAGE & MEMORY              |
+|                                      |
+| SQLite -> authoritative state/history |
+| ChromaDB -> semantic experiment memory|
+| Dataset versions -> immutable files   |
+| Reports -> generated Markdown         |
++--------------------------------------+
+
+================================================================================
+2. CORE DESIGN PRINCIPLES
+=========================
+
+## 2.1 HYBRID AGENTIC CONTROL
+
+The platform is neither:
+
+```
+"fully hardcoded"
+```
+
+nor:
+
+```
+"let the LLM decide everything."
+```
+
+Instead:
+
+```
+User Request
+    |
+    v
+Intent / Scope Routing
+    |
+    v
+Appropriate deterministic flow
+    |
+    v
+Qwen may recommend the next legal action
+    |
+    v
+Python validates legality
+    |
+    v
+Deterministic tool executes
+    |
+    v
+AgentState is updated
+    |
+    v
+Next decision
+```
+
+Python remains authoritative.
+
+Qwen cannot directly execute code, calculate metrics, modify datasets, or
+override state-machine restrictions.
+
+## 2.2 DETERMINISTIC TOOLS ARE AUTHORITATIVE
+
+All numerical ML metrics are calculated by deterministic Python components.
+
+The LLM MUST NOT:
+
+* calculate metrics
+* guess metrics
+* estimate missing metrics
+* fabricate experiment results
+* invent dataset properties
+* claim a transformation improved performance without measured evidence
+
+Examples of deterministic calculations:
+
+* Accuracy
+* Precision
+* Recall
+* Macro F1
+* Minority F1
+* ROC-AUC
+* RMSE
+* Confusion Matrix
+* Missing-value count
+* Imbalance ratio
+* Outlier count
+* Performance deltas
+* Robustness degradation
+
+## 2.3 ORIGINAL DATASET IS IMMUTABLE
+
+The original dataset is never overwritten.
+
+Initial dataset:
+
+```
+v001
+```
+
+Transformation:
+
+```
+v001 -> v002
+```
+
+Another transformation:
+
+```
+v002 -> v003
+```
+
+Every transformed dataset receives a new immutable version.
+
+Each version stores:
+
+```
+dataset.csv
+metadata.json
+```
+
+Metadata records:
+
+* parent version
+* operation
+* parameters
+* creation information
+
+## 2.4 AGENTSTATE IS THE EXECUTION SOURCE OF TRUTH
+
+AgentState maintains the current execution state.
+
+Important fields include:
+
+```
+project_id
+user_goal
+model_id
+dataset_id
+current_dataset_version
+
+is_model_inspected
+is_dataset_inspected
+is_compatibility_validated
+is_baseline_evaluated
+is_data_quality_evaluated
+is_robustness_evaluated
+
+model_metadata
+dataset_metadata
+baseline_metrics
+data_quality_metrics
+robustness_metrics
+latest_metrics
+
+evaluated_dataset_version
+transformations_applied
+experiments
+observations
+actions_taken
+```
+
+This prevents the planner from treating an old evaluation as the evaluation
+of a newer dataset version.
+
+================================================================================
+3. REQUEST ROUTING ARCHITECTURE
+===============================
+
+Every chat request first enters the Chat Router.
+
+Example:
+
+```
+User:
+"What were the baseline metrics before any transformation?"
+```
+
+The system MUST distinguish between:
+
+```
+EXECUTION REQUEST
+INFORMATION REQUEST
+COMPARISON REQUEST
+```
+
+The current intent categories are expanded conceptually into the following
+request types:
+
+```
+1. INFORMATION
+2. SPECIFIC DETERMINISTIC ACTION
+3. FULL EVALUATION
+4. IMPROVEMENT
+5. COMPARISON
+6. HISTORICAL / PROJECT MEMORY
+```
+
+---
+
+## 3.1 INFORMATION REQUEST
+
+Used when the user wants information that can be answered from current
+authoritative state/results.
+
+Examples:
+
+```
+"What were the baseline metrics?"
+"What is my model accuracy?"
+"How many missing values were found?"
+"What was the robustness score?"
+"Tell me about my model."
+"What columns does my dataset have?"
+```
+
+The system should retrieve the relevant existing state.
+
+It should NOT automatically execute unrelated evaluation stages.
+
+Example:
+
+```
+"What were the baseline metrics?"
+```
+
+Expected behavior:
+
+```
+If baseline_metrics already exists:
+    -> read baseline_metrics
+    -> answer user
+    -> STOP
+
+If baseline_metrics does not exist:
+    -> execute only the minimum deterministic prerequisites
+    -> evaluate baseline
+    -> answer user
+    -> STOP
+```
+
+It must NOT automatically continue into:
+
+```
+data quality
+robustness
+transformations
+re-evaluation
+experiment saving
+report generation
+```
+
+---
+
+## 3.2 INSPECTION REQUEST
+
+Example:
+
+```
+"Inspect my model."
+```
+
+Expected:
+
+```
+inspect_model
+-> answer
+-> STOP
+```
+
+Example:
+
+```
+"Inspect my dataset."
+```
+
+Expected:
+
+```
+inspect_dataset
+-> answer
+-> STOP
+```
+
+Example:
+
+```
+"Inspect my model and dataset."
+```
+
+Expected:
+
+```
+inspect_model
+-> inspect_dataset
+-> validate_model_dataset
+-> answer
+-> STOP
+```
+
+The inspection request does NOT imply:
+
+```
+baseline evaluation
+data-quality evaluation
+robustness evaluation
+transformations
+report generation
+```
+
+---
+
+## 3.3 SPECIFIC DETERMINISTIC ACTION
+
+Examples:
+
+```
+"Clean the missing values."
+"Balance the dataset."
+"Apply SMOTE."
+"Handle the outliers."
+"Scale the dataset."
+"Generate the report."
+```
+
+The system executes the requested operation and only the necessary
+prerequisites.
+
+Example:
+
+```
+"Balance the dataset."
+```
+
+Possible flow:
+
+```
+inspect dataset if required
+    ->
+evaluate data quality if required
+    ->
+balance_data
+    ->
+create new immutable dataset version
+    ->
+stop unless the user explicitly requested re-evaluation/evaluation
+```
+
+If the user explicitly asks:
+
+```
+"Balance the dataset and evaluate whether it helped."
+```
+
+Then the flow becomes:
+
+```
+inspect
+-> evaluate
+-> balance
+-> re-evaluate
+-> compare
+-> answer
+```
+
+---
+
+## 3.4 FULL EVALUATION REQUEST
+
+Examples:
+
+```
+"Evaluate my model and dataset."
+"Run the full evaluation."
+"Perform a complete evaluation."
+"Evaluate everything."
+```
+
+This activates the complete deterministic agentic workflow.
+
+The full workflow is:
+
+```
+STEP 1  -> Inspect Model
+STEP 2  -> Inspect Dataset
+STEP 3  -> Validate Compatibility
+STEP 4  -> Baseline Performance
+STEP 5  -> Data Quality Audit
+STEP 6  -> Robustness Benchmark
+STEP 7  -> Determine Required Transformations
+STEP 8  -> Apply Targeted Transformation(s)
+STEP 9  -> Create New Dataset Version
+STEP 10 -> Re-evaluate
+STEP 11 -> Programmatic Comparison
+STEP 12 -> Save Experiment
+STEP 13 -> Generate Final Report
+STEP 14 -> Answer User
+```
+
+---
+
+## 3.5 IMPROVEMENT REQUEST
+
+Examples:
+
+```
+"Improve my dataset."
+"Fix the problems in my dataset."
+"Improve model performance."
+"Handle the detected data-quality problems."
+```
+
+This activates an improvement-oriented deterministic workflow.
+
+The agent first determines what problems actually exist.
+
+For example:
+
+```
+Data Quality Audit
+      |
+      +--> Missing values?
+      |       -> handle_missing_values
+      |
+      +--> Class imbalance?
+      |       -> balance_data
+      |
+      +--> Outliers?
+      |       -> handle_outliers
+      |
+      +--> Scaling required?
+              -> scale_data
+```
+
+Only transformations justified by deterministic observations are allowed.
+
+After every dataset transformation:
+
+```
+new version created
+    ->
+old evaluation invalidated for current version
+    ->
+performance re-evaluated
+    ->
+comparison performed
+    ->
+experiment saved
+```
+
+The system MUST NOT blindly apply every available transformation.
+
+---
+
+## 3.6 COMPARISON REQUEST
+
+Examples:
+
+```
+"Did SMOTE help?"
+"Which version performed better?"
+"Compare v001 and v002."
+"Was balancing worth it?"
+"Did the transformation improve Macro F1?"
+```
+
+The system retrieves authoritative experiment/version information.
+
+Comparison calculations are performed by:
+
+```
+app/evaluation/comparison.py
+```
+
+The LLM may explain the comparison, but does not calculate the metric delta.
+
+Example:
+
+```
+v001 Macro F1 = 0.71
+v002 Macro F1 = 0.82
+```
+
+Python calculates:
+
+```
+delta = 0.11
+```
+
+Qwen may then explain:
+
+```
+"Macro F1 improved by 0.11 after balancing."
+```
+
+The number must originate from deterministic data.
+
+---
+
+## 3.7 HISTORICAL / PROJECT MEMORY REQUEST
+
+Examples:
+
+```
+"What did we try previously?"
+"What happened in the previous experiment?"
+"Show my previous experiments."
+```
+
+These requests use ChromaDB project memory.
+
+Flow:
+
+```
+User
+  |
+  v
+search_project_history
+  |
+  v
+ChromaDB
+  |
+  v
+Relevant historical records
+  |
+  v
+Qwen explanation
+  |
+  v
+User
+```
+
+================================================================================
+4. FULL DETERMINISTIC AGENTIC EVALUATION CYCLE
+==============================================
+
+The full evaluation pipeline is a closed-loop controller.
+
+USER GOAL:
+
+```
+"Evaluate my model and dataset."
+
+                          |
+                          v
+                +---------------------+
+                | STEP 1              |
+                | INSPECT MODEL       |
+                +----------+----------+
+                           |
+                           v
+                +---------------------+
+                | STEP 2              |
+                | INSPECT DATASET     |
+                +----------+----------+
+                           |
+                           v
+                +---------------------+
+                | STEP 3              |
+                | VALIDATE COMPAT.    |
+                +----------+----------+
+                           |
+                           v
+                +---------------------+
+                | STEP 4              |
+                | BASELINE EVALUATION |
+                +----------+----------+
+                           |
+                           v
+                +---------------------+
+                | STEP 5              |
+                | DATA QUALITY        |
+                +----------+----------+
+                           |
+                           v
+                +---------------------+
+                | STEP 6              |
+                | ROBUSTNESS          |
+                +----------+----------+
+                           |
+                           v
+                +---------------------+
+                | PROBLEMS DETECTED?  |
+                +----------+----------+
+                           |
+             +-------------+-------------+
+             |                           |
+            YES                         NO
+             |                           |
+             v                           |
+   +---------------------+               |
+   | TARGETED            |               |
+   | TRANSFORMATION      |               |
+   +----------+----------+               |
+              |                          |
+              v                          |
+   +---------------------+               |
+   | CREATE NEW VERSION  |               |
+   | v001 -> v002        |               |
+   +----------+----------+               |
+              |                          |
+              v                          |
+   +---------------------+               |
+   | RE-EVALUATE        |               |
+   | CURRENT VERSION    |               |
+   +----------+----------+               |
+              |                          |
+              +-------------+------------+
+                            |
+                            v
+                +---------------------+
+                | COMPARE RESULTS     |
+                +----------+----------+
+                           |
+                           v
+                +---------------------+
+                | SAVE EXPERIMENT     |
+                +----------+----------+
+                           |
+                           v
+                +---------------------+
+                | GENERATE REPORT      |
+                +----------+----------+
+                           |
+                           v
+                       COMPLETE
+```
+
+================================================================================
+5. AGENT PLANNER DECISION CYCLE
+===============================
+
+The AgentPlanner receives:
+
+```
+AgentState
++
+User Goal
++
+Available Tool Definitions
+```
+
+Qwen recommends the next action.
+
+Python then verifies:
+
+```
+Is this tool available?
+Is this action legal in the current state?
+Are the required parameters available?
+Has this action already been completed?
+Is the transformation justified?
+Is the current dataset version correctly evaluated?
+```
+
+Only legal actions may execute.
+
+Flow:
+
+```
+AgentState
+    |
+    v
+Planner
+    |
+    +---- Qwen recommendation
+    |
+    v
+Python legality check
+    |
+   / \
+legal  illegal
+  |       |
+  v       v
+```
+
+execute  deterministic
+fallback
+|
+v
+execute
+
+IMPORTANT:
+
+The deterministic fallback is NOT removed.
+
+It remains the safety mechanism when:
+
+* Qwen is unavailable
+* Qwen returns invalid JSON
+* Qwen selects an unavailable action
+* Qwen selects an illegal action
+* planner output cannot be trusted
+
+================================================================================
+6. DETERMINISTIC FALLBACK ARCHITECTURE
+======================================
+
+The deterministic fallback is state-aware AND request-aware.
+
+It must not assume that every user request means:
+
+```
+"Run the entire evaluation."
+```
+
+Instead, the current user objective determines the permitted workflow.
+
+Examples:
+
+---
+
+REQUEST:
+"What were my baseline metrics?"
+--------------------------------
+
+Required state:
+
+```
+baseline_metrics
+```
+
+If already available:
+
+```
+READ baseline_metrics
+-> ANSWER
+-> COMPLETE
+```
+
+If unavailable:
+
+```
+inspect_model if necessary
+-> inspect_dataset if necessary
+-> validate compatibility if necessary
+-> evaluate_performance
+-> ANSWER
+-> COMPLETE
+```
+
+STOP.
+
+No automatic transformation.
+
+---
+
+REQUEST:
+"Inspect my model and dataset."
+-------------------------------
+
+Flow:
+
+```
+inspect_model
+-> inspect_dataset
+-> validate compatibility
+-> ANSWER
+-> COMPLETE
+```
+
+STOP.
+
+---
+
+REQUEST:
+"Evaluate my model."
+--------------------
+
+Flow:
+
+```
+inspect
+-> validate
+-> baseline
+-> data quality
+-> robustness
+-> targeted transformations
+-> re-evaluation
+-> comparison
+-> experiment
+-> report
+-> COMPLETE
+```
+
+---
+
+REQUEST:
+"Improve my dataset."
+---------------------
+
+Flow:
+
+```
+inspect
+-> data quality
+-> determine justified transformations
+-> transformation
+-> new version
+-> re-evaluate
+-> compare
+-> save experiment
+-> ANSWER
+```
+
+Report generation occurs only when requested or when the improvement workflow
+explicitly requires a final report.
+
+================================================================================
+7. STATE TRANSITIONS
+====================
+
+MODEL INSPECTION
+
+```
+is_model_inspected = False
+            |
+            v
+      inspect_model
+            |
+            v
+is_model_inspected = True
+```
+
+DATASET INSPECTION
+
+```
+is_dataset_inspected = False
+            |
+            v
+    inspect_dataset
+            |
+            v
+is_dataset_inspected = True
+```
+
+COMPATIBILITY
+
+```
+is_compatibility_validated = False
+            |
+            v
+  validate_model_dataset
+            |
+            v
+is_compatibility_validated = True
+```
+
+BASELINE
+
+```
+is_baseline_evaluated = False
+            |
+            v
+  evaluate_performance
+            |
+            v
+is_baseline_evaluated = True
+
+baseline_metrics = result
+
+evaluated_dataset_version = current_dataset_version
+```
+
+TRANSFORMATION
+
+```
+current_dataset_version = v001
+            |
+            v
+   transformation
+            |
+            v
+current_dataset_version = v002
+```
+
+After transformation:
+
+```
+previous evaluation belongs to v001
+current dataset belongs to v002
+```
+
+Therefore:
+
+```
+latest_metrics = None
+```
+
+until v002 is re-evaluated.
+
+================================================================================
+8. DATA VERSIONING
+==================
+
+Initial:
+
+```
+storage/datasets/<dataset_id>/versions/v001/dataset.csv
+```
+
+After transformation:
+
+```
+storage/datasets/<dataset_id>/versions/v002/dataset.csv
+```
+
+Metadata:
+
+```
+storage/datasets/<dataset_id>/versions/v002/metadata.json
+```
+
+Example:
+
+```
+v001
+  |
+  +---- balance_data
+          |
+          v
+        v002
+          |
+          +---- handle_missing_values
+                  |
+                  v
+                v003
+```
+
+The original v001 remains untouched.
+
+================================================================================
+9. MODEL EXECUTION
+==================
+
+Supported model frameworks:
+
+```
+Scikit-learn
+PyTorch
+ONNX
+```
+
+Model loading is handled by:
+
+```
+app/models/loader.py
+```
+
+Framework-specific execution is handled by:
+
+```
+app/models/adapters.py
+```
+
+Prediction is handled by:
+
+```
+app/models/predictor.py
+```
+
+The adapter layer is responsible for converting input data into the format
+expected by the loaded model.
+
+For example:
+
+```
+sklearn model trained with feature names
+    -> DataFrame with matching feature names
+
+sklearn model trained without feature names
+    -> NumPy array
+```
+
+This prevents unnecessary sklearn feature-name warnings while preserving
+correct feature ordering.
+
+================================================================================
+10. EVALUATION ENGINE
+=====================
+
+Performance:
+
+```
+app/evaluation/performance.py
+```
+
+Calculates deterministic metrics such as:
+
+```
+Accuracy
+Precision
+Recall
+Macro F1
+Minority F1
+Confusion Matrix
+ROC-AUC
+RMSE where applicable
+```
+
+Data quality:
+
+```
+app/evaluation/data_quality.py
+```
+
+Measures:
+
+```
+Missing values
+Missingness percentage
+Class imbalance
+Imbalance ratio
+Duplicate records
+Outliers
+Constant columns
+```
+
+Robustness:
+
+```
+app/evaluation/robustness.py
+```
+
+Measures model behavior under controlled Gaussian noise.
+
+Example:
+
+```
+baseline performance
+        |
+        v
+add controlled noise
+        |
+        v
+noisy performance
+        |
+        v
+degradation percentage
+```
+
+Comparison:
+
+```
+app/evaluation/comparison.py
+```
+
+Calculates objective before/after differences.
+
+Example:
+
+```
+Baseline Macro F1 = 0.71
+Experiment Macro F1 = 0.82
+
+Delta = +0.11
+```
+
+================================================================================
+11. TRANSFORMATION ENGINE
+=========================
+
+Available transformations:
+
+```
+handle_missing_values
+balance_data
+handle_outliers
+scale_data
+add_gaussian_noise
+```
+
+Transformations are NOT automatically applied simply because the tool exists.
+
+The transformation must be justified by observed state.
+
+Examples:
+
+```
+missing_values_count > 0
+    -> handle_missing_values
+
+class_imbalance_detected = True
+    -> balance_data
+
+outliers_count > 0
+    -> handle_outliers
+
+model metadata indicates scaling is required
+    -> scale_data
+```
+
+Gaussian noise is primarily a robustness/benchmarking operation and should
+not be treated as ordinary data cleaning.
+
+================================================================================
+12. EXPERIMENT PERSISTENCE
+==========================
+
+After a transformation is evaluated, the experiment can be persisted.
+
+SQLite stores authoritative structured information:
+
+```
+experiment_id
+project_id
+model_id
+input_dataset_version
+output_dataset_version
+operation
+parameters
+metrics_before
+metrics_after
+comparison
+agent_reasoning
+created_at
+```
+
+ChromaDB stores a semantic summary.
+
+Example:
+
+```
+Experiment exp_...
+Operation: balance_data
+Input: v001
+Output: v002
+Macro F1 change: +0.11
+```
+
+This allows later natural-language questions such as:
+
+```
+"Did balancing help?"
+```
+
+to retrieve the relevant experiment.
+
+================================================================================
+13. CHAT INFORMATION FLOW
+=========================
+
+The chat system does NOT always start AgentRunner.
+
+Instead:
+
+```
+                    USER MESSAGE
+                          |
+                          v
+                INTENT / REQUEST ROUTER
+                          |
+      +-------------------+-------------------+
+      |                   |                   |
+      v                   v                   v
+ INFORMATION         DETERMINISTIC       COMPARISON /
+    REQUEST              ACTION           HISTORY
+      |                   |                   |
+      v                   v                   v
+```
+
+Existing State        AgentRunner or       ChromaDB /
+/ deterministic       narrow workflow      experiment data
+results                  |                   |
+|                   |                   |
++-------------------+-------------------+
+|
+v
+RESPONSE GENERATION
+|
+v
+USER
+
+================================================================================
+14. EXAMPLES OF EXPECTED CHAT BEHAVIOR
+======================================
+
+## EXAMPLE 1
+
+User:
+
+```
+"Inspect my model and dataset."
+```
+
+Expected actions:
+
+```
+inspect_model
+inspect_dataset
+validate_model_dataset
+```
+
+Expected result:
+
+```
+concise inspection summary
+```
+
+NOT executed:
+
+```
+evaluate_performance
+evaluate_data_quality
+evaluate_robustness
+transformations
+save_experiment
+generate_report
+```
+
+## EXAMPLE 2
+
+User:
+
+```
+"What were the baseline metrics before any transformation?"
+```
+
+If baseline already exists:
+
+```
+Read:
+    baseline_metrics
+```
+
+Answer:
+
+```
+Baseline Accuracy: ...
+Baseline Macro F1: ...
+Baseline Minority F1: ...
+```
+
+STOP.
+
+## EXAMPLE 3
+
+User:
+
+```
+"Evaluate my model and dataset."
+```
+
+Expected:
+
+```
+Full deterministic evaluation workflow.
+```
+
+## EXAMPLE 4
+
+User:
+
+```
+"Improve my dataset."
+```
+
+Expected:
+
+```
+Evaluate relevant data quality
+-> identify actual problems
+-> apply justified transformations
+-> create immutable version
+-> re-evaluate
+-> compare
+-> save experiment
+```
+
+No unsupported transformation should be applied.
+
+## EXAMPLE 5
+
+User:
+
+```
+"Did SMOTE help?"
+```
+
+Expected:
+
+```
+Retrieve experiment / comparison data
+-> calculate/read deterministic comparison
+-> Qwen explains result
+-> answer
+```
+
+Do NOT rerun the entire evaluation unless the user explicitly asks for a
+new evaluation.
+
+## EXAMPLE 6
+
+User:
+
+```
+"Generate the report."
+```
+
+Expected:
+
+```
+Generate report from the currently available completed evaluation state.
+```
+
+If required evaluation information is missing, the system should execute only
+the necessary prerequisites rather than blindly restarting unrelated work.
+
+================================================================================
+15. REPORT GENERATION
+=====================
+
+Report generator:
+
+```
+app/reports/generator.py
+```
+
+The report contains:
+
+```
+1. Overall Assessment
+2. Model Performance Analysis
+3. Data Quality & Detected Issues
+4. Robustness & Stability Analysis
+5. Experiment Summary & Transformation Impact
+6. Recommendations & Next Steps
+7. Conclusion
+```
+
+The final report is stored under:
+
+```
+storage/reports/
+```
+
+The report is generated from authoritative AgentState/evaluation information.
+
+Qwen may generate narrative recommendations, but numerical claims must be
+grounded in deterministic results.
+
+================================================================================
+16. MEMORY ARCHITECTURE
+=======================
+
+SQLite:
+
+```
+Authoritative structured project state/history.
+```
+
+ChromaDB:
+
+```
+Semantic memory for historical experiments and observations.
+```
+
+Rule:
+
+```
+SQLite / AgentState is authoritative for current structured state.
+
+ChromaDB is primarily used for semantic retrieval of historical context.
+```
+
+Therefore:
+
+```
+"What is my current baseline accuracy?"
+```
+
+should prefer authoritative current state.
+
+Whereas:
+
+```
+"What happened in my previous experiments?"
+```
+
+can use ChromaDB semantic search.
+
+================================================================================
+17. COMPLETE REQUEST-TO-RESPONSE FLOW
+=====================================
+
+```
+                     USER
+                      |
+                      v
+              FASTAPI CHAT API
+                      |
+                      v
+            REQUEST CLASSIFICATION
+                      |
+      +---------------+---------------+
+      |               |               |
+      v               v               v
+INFORMATION      DETERMINISTIC    COMPARISON /
+   REQUEST           ACTION          HISTORY
+      |               |               |
+      v               v               v
+Read current      Select narrow      Search
+authoritative     or full flow       memory/
+state/results          |             experiments
+      |               |               |
+      |               v               |
+      |         AgentState            |
+      |               |               |
+      |               v               |
+      |         AgentPlanner          |
+      |               |               |
+      |        +------+-------+       |
+      |        |              |       |
+      |      Qwen         Fallback     |
+      |        |              |       |
+      |        +------+-------+       |
+      |               |               |
+      |               v               |
+      |        Legality Check         |
+      |               |               |
+      |               v               |
+      |         Tool Registry         |
+      |               |               |
+      |               v               |
+      |       Deterministic Tool      |
+      |               |               |
+      |               v               |
+      |          AgentState           |
+      |               |               |
+      +---------------+---------------+
+                      |
+                      v
+               RESPONSE GENERATION
+                      |
+                      v
+                     USER
+```
+
+================================================================================
+18. FAILURE HANDLING
+====================
+
+If Qwen is unavailable:
+
+```
+Request routing uses deterministic fallback classification where possible.
+```
+
+If Qwen planner is unavailable:
+
+```
+AgentPlanner uses deterministic state-aware fallback.
+```
+
+If Qwen produces invalid JSON:
+
+```
+Python rejects the decision.
+```
+
+If Qwen chooses an illegal action:
+
+```
+Python rejects the decision.
+```
+
+If a deterministic tool fails:
+
+```
+AgentRunner records the failure.
+```
+
+Repeated failures of the same action are detected.
+
+After the configured failure threshold:
+
+```
+AgentState.status = "failed"
+```
+
+The system prevents infinite execution loops.
+
+================================================================================
+19. SAFETY AND CORRECTNESS RULES
+================================
+
+RULE 1
+LLM never calculates numerical ML metrics.
+
+RULE 2
+Python determines whether a tool is legal.
+
+RULE 3
+Original datasets are immutable.
+
+RULE 4
+Every transformation creates a new dataset version.
+
+RULE 5
+A transformed dataset must be re-evaluated before its results are treated
+as current.
+
+RULE 6
+A narrow informational question must not automatically trigger the full
+evaluation workflow.
+
+RULE 7
+Full evaluation remains available as a deterministic workflow.
+
+RULE 8
+Transformations require deterministic evidence.
+
+RULE 9
+Historical questions use project memory / experiment history.
+
+RULE 10
+Current authoritative state should be preferred over semantic memory when
+answering questions about current metrics.
+
+RULE 11
+The LLM may explain deterministic results but cannot replace deterministic
+calculations.
+
+RULE 12
+The deterministic fallback must remain available whenever LLM planning
+fails.
+
+================================================================================
+20. CODEBASE DIRECTORY & FILE MAPPING
+=====================================
+
+app/
+├── core/
+│   ├── config.py
+│   │   -> Environment settings and Qwen configuration
+│   ├── database.py
+│   │   -> SQLite schema and authoritative persistence
+│   └── storage.py
+│       -> Storage paths and file management
+│
+├── models/
+│   ├── adapters.py
+│   │   -> Multi-framework prediction adapters
+│   ├── loader.py
+│   │   -> Model loading and framework detection
+│   ├── inspector.py
+│   │   -> Model architecture and metadata inspection
+│   ├── validator.py
+│   │   -> Model integrity validation
+│   └── predictor.py
+│       -> Deterministic model inference
+│
+├── datasets/
+│   ├── loader.py
+│   │   -> Dataset loading
+│   ├── inspector.py
+│   │   -> Dataset inspection
+│   ├── profiler.py
+│   │   -> Detailed dataset profiling
+│   ├── validator.py
+│   │   -> Model/dataset compatibility validation
+│   └── versioning.py
+│       -> Immutable dataset version management
+│
+├── evaluation/
+│   ├── performance.py
+│   │   -> Deterministic performance metrics
+│   ├── data_quality.py
+│   │   -> Data quality audit
+│   ├── robustness.py
+│   │   -> Robustness benchmarking
+│   └── comparison.py
+│       -> Deterministic before/after comparison
+│
+├── transformations/
+│   ├── cleaner.py
+│   │   -> Missing-value handling
+│   ├── balancer.py
+│   │   -> SMOTE / oversampling / undersampling
+│   ├── scaler.py
+│   │   -> Feature scaling
+│   ├── outliers.py
+│   │   -> Outlier handling
+│   └── noise.py
+│       -> Gaussian-noise benchmarking/transformation
+│
+├── memory/
+│   └── chroma_memory.py
+│       -> Semantic project/experiment memory
+│
+├── agent/
+│   ├── state.py
+│   │   -> Authoritative runtime AgentState
+│   ├── tools.py
+│   │   -> Deterministic tool registry
+│   ├── planner.py
+│   │   -> Qwen planner + deterministic fallback
+│   ├── planner1.py
+│   │   -> Legacy Ollama planner
+│   └── agent.py
+│       -> Closed-loop AgentRunner
+│
+├── services/
+│   ├── project_service.py
+│   │   -> Project and upload management
+│   └── preset_service.py
+│       -> Benchmark preset handling
+│
+├── llm/
+│   ├── qwen_client.py
+│   │   -> Qwen HTTP client
+│   ├── ollama_client.py
+│   │   -> Legacy Ollama client
+│   └── prompts.py
+│       -> Agent, intent, and chat prompts
+│
+├── reports/
+│   └── generator.py
+│       -> Markdown report generation
+│
+├── api/
+│   └── chat.py
+│       -> User request routing and chat responses
+│
+└── main.py
+-> FastAPI application entry point
+
+frontend/
+└── index.html
+-> Web dashboard and chat interface
+
+storage/
+├── models/
+├── datasets/
+│   ├── <dataset_id>/
+│   │   ├── original/
+│   │   └── versions/
+│   │       ├── v001/
+│   │       ├── v002/
+│   │       └── ...
+├── preset_downloads/
+├── reports/
+└── chromadb/
+
+tests/
+├── test_adapters_and_evaluators.py
+├── test_presets.py
+└── test_e2e_workflow.py
+
+================================================================================
+21. SERVER ARCHITECTURE
+=======================
+
+FastAPI:
+
+```
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Dashboard:
+
+```
+http://localhost:8000/
+```
+
+Qwen:
+
+```
+OpenAI-compatible / HTTP-based model service.
+```
+
+Configuration:
+
+```
+QWEN_BASE_URL=<current-Qwen-endpoint>
+```
+
+The Qwen endpoint may change between Molab/ngrok sessions.
+
+The application should use environment configuration rather than hardcoding
+the changing endpoint into workflow logic.
+
+================================================================================
+22. QUICK EXECUTION EXAMPLES
+============================
+
+FULL EVALUATION:
+
+```
+User:
+    "Evaluate my model and dataset."
+
+Result:
+
+    Inspect
+    -> Validate
+    -> Baseline
+    -> Data Quality
+    -> Robustness
+    -> Transform if justified
+    -> Re-evaluate
+    -> Compare
+    -> Save Experiment
+    -> Report
+```
+
+INSPECTION:
+
+```
+User:
+    "Inspect my model and dataset."
+
+Result:
+
+    Inspect Model
+    -> Inspect Dataset
+    -> Validate
+    -> Answer
+```
+
+BASELINE QUESTION:
+
+```
+User:
+    "What were the baseline metrics before transformation?"
+
+Result:
+
+    Read existing baseline
+    OR
+    calculate only the missing baseline prerequisites
+
+    -> Answer
+    -> STOP
+```
+
+IMPROVEMENT:
+
+```
+User:
+    "Improve my dataset."
+
+Result:
+
+    Identify problems
+    -> Targeted transformation
+    -> New immutable version
+    -> Re-evaluation
+    -> Comparison
+    -> Save experiment
+    -> Answer
+```
+
+HISTORY:
+
+```
+User:
+    "What did we try previously?"
+
+Result:
+
+    ChromaDB / SQLite history
+    -> Retrieve
+    -> Qwen explanation
+    -> Answer
+```
+
+================================================================================
+23. FINAL ARCHITECTURAL SUMMARY
+===============================
+
+The platform consists of FOUR major decision layers:
+
+```
+LAYER 1
+--------------------------------------------------------------------------
+REQUEST ROUTING
+
+Determines what the user actually wants.
+
+    Information
+    Specific action
+    Full evaluation
+    Improvement
+    Comparison
+    History
+
+
+LAYER 2
+--------------------------------------------------------------------------
+AGENT PLANNING
+
+Qwen recommends the next appropriate deterministic action.
+
+Python validates the recommendation.
+
+
+LAYER 3
+--------------------------------------------------------------------------
+DETERMINISTIC EXECUTION
+
+Tools perform:
+
+    inspection
+    validation
+    evaluation
+    transformation
+    comparison
+    persistence
+    reporting
+
+
+LAYER 4
+--------------------------------------------------------------------------
+STATE + MEMORY
+
+    AgentState
+    SQLite
+    ChromaDB
+    Immutable dataset versions
+    Reports
+```
+
+The fundamental execution rule is:
+
+```
+USER REQUEST
+    ->
+DETERMINE REQUEST SCOPE
+    ->
+SELECT APPROPRIATE FLOW
+    ->
+USE AGENTSTATE
+    ->
+QWEN MAY RECOMMEND
+    ->
+PYTHON VALIDATES
+    ->
+DETERMINISTIC TOOL EXECUTES
+    ->
+UPDATE STATE
+    ->
+STOP WHEN THAT USER'S OBJECTIVE IS SATISFIED
+```
+
+The full evaluation pipeline remains the core deterministic backbone.
+
+The major architectural improvement is that the backbone is now selected
+according to the user's objective instead of being triggered for every
+deterministic or information request.
+
+================================================================================
+END OF WORKFLOW DOCUMENT
+========================

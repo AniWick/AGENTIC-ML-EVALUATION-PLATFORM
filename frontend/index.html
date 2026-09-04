@@ -93,7 +93,12 @@
             font-size: 0.9rem;
             border: 1px solid var(--border-color);
         }
-        .asset-selection { background: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; }
+        .asset-selection {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px;
+        }
         .preset-banner {
             background: #eff6ff;
             border: 1px solid #bfdbfe;
@@ -127,22 +132,29 @@
     </nav>
 
     <div class="container-fluid px-4 py-3">
+
         <!-- Top Preset Quick-Start Banner -->
         <div class="row mb-3">
             <div class="col-12">
                 <div class="preset-banner d-flex flex-wrap align-items-center justify-content-between gap-3">
                     <div class="d-flex align-items-center gap-3">
                         <div>
-                            <span class="badge bg-primary me-2"><i class="bi bi-lightning-charge-fill me-1"></i>Benchmark Presets</span>
+                            <span class="badge bg-primary me-2">
+                                <i class="bi bi-lightning-charge-fill me-1"></i>Benchmark Presets
+                            </span>
                             <strong>Instant Model & Dataset Benchmark:</strong>
-                            <span class="text-muted ms-2 small">Select pre-trained model & benchmark dataset without needing local files:</span>
+                            <span class="text-muted ms-2 small">
+                                Select pre-trained model & benchmark dataset without needing local files:
+                            </span>
                         </div>
+
                         <select id="presetDropdown" class="form-select form-select-sm" style="min-width: 250px;">
                             <option value="iris" selected>🌸 Iris Flower Classification (4 Features, 3 Classes)</option>
                             <option value="breast_cancer">🔬 Breast Cancer Diagnostics (30 Features)</option>
                             <option value="wine">🍷 Wine Cultivar Benchmark (13 Features)</option>
                         </select>
                     </div>
+
                     <div>
                         <button class="btn btn-sm btn-primary fw-bold" onclick="loadBenchmarkPreset()">
                             <i class="bi bi-download me-1"></i>Load Benchmark Preset
@@ -158,8 +170,11 @@
                 <div class="card p-3 d-flex flex-row align-items-center justify-content-between">
                     <div>
                         <h5 class="mb-1" id="currentProjectTitle">No Project Selected</h5>
-                        <small class="text-muted" id="currentProjectDesc">Select a project or load a benchmark preset above to begin evaluation.</small>
+                        <small class="text-muted" id="currentProjectDesc">
+                            Select a project or load a benchmark preset above to begin evaluation.
+                        </small>
                     </div>
+
                     <div class="d-flex gap-2">
                         <button id="runEvalBtn" class="btn btn-success" onclick="triggerFullEvaluation()" disabled>
                             <i class="bi bi-play-fill me-1"></i>Run Agentic Evaluation
@@ -170,26 +185,48 @@
         </div>
 
         <div class="row">
+
             <!-- Left Column: Uploads & Project Assets -->
             <div class="col-md-4">
+
                 <!-- Upload Model -->
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-cpu me-2"></i>1. Machine Learning Model</span>
+                        <span>
+                            <i class="bi bi-cpu me-2"></i>1. Machine Learning Model
+                        </span>
                         <span id="modelBadge" class="badge bg-secondary">None</span>
                     </div>
+
                     <div class="card-body">
                         <div class="mb-2">
-                            <input type="file" id="modelFileInput" class="form-control form-control-sm" accept=".pkl,.joblib,.pt,.pth,.onnx">
+                            <input type="file" id="modelFileInput" class="form-control form-control-sm"
+                                   accept=".pkl,.joblib,.pt,.pth,.onnx">
                         </div>
+
                         <button class="btn btn-sm btn-outline-primary w-100" onclick="uploadModel()">
                             <i class="bi bi-upload me-1"></i>Upload Model (.pkl, .joblib, .pt, .onnx)
                         </button>
+
                         <div class="asset-selection mt-3">
-                            <label class="form-label small fw-semibold mb-1">Use a previously added model</label>
-                            <div class="input-group input-group-sm"><select id="savedModelSelect" class="form-select"><option value="">No saved models</option></select><button class="btn btn-outline-secondary" onclick="selectSavedModel()">Use</button></div>
-                            <div id="selectedModelName" class="small text-muted mt-2">No model selected.</div>
+                            <label class="form-label small fw-semibold mb-1">
+                                Use a previously added model
+                            </label>
+
+                            <div class="input-group input-group-sm">
+                                <select id="savedModelSelect" class="form-select">
+                                    <option value="">No saved models</option>
+                                </select>
+                                <button class="btn btn-outline-secondary" onclick="selectSavedModel()">
+                                    Use
+                                </button>
+                            </div>
+
+                            <div id="selectedModelName" class="small text-muted mt-2">
+                                No model selected.
+                            </div>
                         </div>
+
                         <div id="modelMetaBox" class="mt-2 text-muted small" style="display: none;"></div>
                     </div>
                 </div>
@@ -197,25 +234,62 @@
                 <!-- Upload Dataset -->
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-table me-2"></i>2. Dataset</span>
+                        <span>
+                            <i class="bi bi-table me-2"></i>2. Dataset
+                        </span>
                         <span id="datasetBadge" class="badge bg-secondary">None</span>
                     </div>
+
                     <div class="card-body">
                         <div class="mb-2">
-                            <input type="file" id="datasetFileInput" class="form-control form-control-sm" accept=".csv,.parquet,.json">
+                            <input type="file" id="datasetFileInput" class="form-control form-control-sm"
+                                   accept=".csv,.parquet,.json">
                         </div>
+
                         <button class="btn btn-sm btn-outline-primary w-100" onclick="uploadDataset()">
                             <i class="bi bi-upload me-1"></i>Upload Dataset (.csv, .parquet, .json)
                         </button>
+
                         <div class="asset-selection mt-3">
-                            <label class="form-label small fw-semibold mb-1">Use a previously added dataset</label>
-                            <div class="input-group input-group-sm"><select id="savedDatasetSelect" class="form-select"><option value="">No saved datasets</option></select><button class="btn btn-outline-secondary" onclick="selectSavedDataset()">Use</button></div>
-                            <div id="selectedDatasetName" class="small text-muted mt-2">No dataset selected.</div>
+                            <label class="form-label small fw-semibold mb-1">
+                                Use a previously added dataset
+                            </label>
+
+                            <div class="input-group input-group-sm">
+                                <select id="savedDatasetSelect" class="form-select">
+                                    <option value="">No saved datasets</option>
+                                </select>
+                                <button class="btn btn-outline-secondary" onclick="selectSavedDataset()">
+                                    Use
+                                </button>
+                            </div>
+
+                            <div id="selectedDatasetName" class="small text-muted mt-2">
+                                No dataset selected.
+                            </div>
                         </div>
+
                         <div id="datasetMetaBox" class="mt-2 text-muted small" style="display: none;"></div>
+
                         <div class="asset-selection mt-3">
-                            <label class="form-label small fw-semibold mb-1">Dataset actions (creates a new version)</label>
-                            <div class="input-group input-group-sm"><select id="datasetAction" class="form-select"><option value="clean">Clean missing values</option><option value="deduplicate">Remove duplicates</option><option value="prune">Prune outlier rows</option><option value="clip_outliers">Clip outliers</option><option value="balance">Balance classes</option><option value="scale">Scale features</option></select><button class="btn btn-outline-primary" onclick="applyDatasetAction()">Apply</button></div>
+                            <label class="form-label small fw-semibold mb-1">
+                                Dataset actions (creates a new version)
+                            </label>
+
+                            <div class="input-group input-group-sm">
+                                <select id="datasetAction" class="form-select">
+                                    <option value="clean">Clean missing values</option>
+                                    <option value="deduplicate">Remove duplicates</option>
+                                    <option value="prune">Prune outlier rows</option>
+                                    <option value="clip_outliers">Clip outliers</option>
+                                    <option value="balance">Balance classes</option>
+                                    <option value="scale">Scale features</option>
+                                </select>
+
+                                <button class="btn btn-outline-primary" onclick="applyDatasetAction()">
+                                    Apply
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -225,27 +299,38 @@
                     <div class="card-header">
                         <i class="bi bi-git me-2"></i>Dataset Version History
                     </div>
+
                     <div class="card-body p-0">
                         <ul id="versionList" class="list-group list-group-flush small">
-                            <li class="list-group-item text-muted">No versions uploaded yet.</li>
+                            <li class="list-group-item text-muted">
+                                No versions uploaded yet.
+                            </li>
                         </ul>
                     </div>
                 </div>
+
             </div>
 
             <!-- Middle Column: Agent Transparency & Chat -->
             <div class="col-md-5">
                 <div class="card">
+
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-chat-dots me-2"></i>Agent Conversational Controller</span>
+                        <span>
+                            <i class="bi bi-chat-dots me-2"></i>Agent Conversational Controller
+                        </span>
                         <span id="agentStatusBadge" class="badge bg-secondary">Idle</span>
                     </div>
+
                     <div class="card-body">
+
                         <div id="chatBox" class="chat-box mb-3">
                             <div class="chat-msg chat-bot">
-                                Welcome! Select a Benchmark Preset (like 🌸 Iris) or upload custom files. Ask me to evaluate, inspect, clean, or balance your dataset!
+                                Welcome! Select a Benchmark Preset (like 🌸 Iris) or upload custom files.
+                                Ask me to evaluate, inspect, clean, or balance your dataset!
                             </div>
                         </div>
+
                         <div id="quickActions" class="d-flex flex-wrap gap-2 mb-3"></div>
 
                         <!-- Actions Log -->
@@ -255,40 +340,75 @@
                         </div>
 
                         <div class="input-group">
-                            <input type="text" id="chatInput" class="form-control" placeholder="e.g. Evaluate my Iris model and improve it if there is class imbalance..." onkeydown="if(event.key==='Enter') sendChatMessage()">
+                            <input type="text"
+                                   id="chatInput"
+                                   class="form-control"
+                                   placeholder="e.g. Evaluate my Iris model and improve it if there is class imbalance..."
+                                   onkeydown="if(event.key==='Enter') sendChatMessage()">
+
                             <button class="btn btn-primary" onclick="sendChatMessage()">
                                 <i class="bi bi-send-fill"></i>
                             </button>
                         </div>
+
                     </div>
                 </div>
             </div>
 
             <!-- Right Column: Noise comparison chart & Markdown report -->
             <div class="col-md-3">
+
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-bar-chart-line me-2"></i>Noise Comparison</span>
-                        <select id="metricSelect" class="form-select form-select-sm" style="width: 135px;" onchange="renderNoiseChart()">
-                            <option value="accuracy">Accuracy</option><option value="precision_macro">Precision</option><option value="recall_macro">Recall</option><option value="f1_macro">Macro F1</option>
+                        <span>
+                            <i class="bi bi-bar-chart-line me-2"></i>Noise Comparison
+                        </span>
+
+                        <select id="metricSelect"
+                                class="form-select form-select-sm"
+                                style="width: 135px;"
+                                onchange="renderNoiseChart()">
+                            <option value="accuracy">Accuracy</option>
+                            <option value="precision_macro">Precision</option>
+                            <option value="recall_macro">Recall</option>
+                            <option value="f1_macro">Macro F1</option>
                         </select>
                     </div>
+
                     <div class="card-body">
-                        <canvas id="noiseComparisonChart" aria-label="Clean and noisy model comparison"></canvas>
-                        <div id="chartEmptyState" class="small text-muted text-center mt-2">Run an evaluation to see clean versus noisy model results.</div>
+                        <canvas id="noiseComparisonChart"
+                                aria-label="Clean and noisy model comparison"></canvas>
+
+                        <div id="chartEmptyState"
+                             class="small text-muted text-center mt-2">
+                            Run an evaluation to see clean versus noisy model results.
+                        </div>
                     </div>
                 </div>
 
                 <!-- Latest Report Viewer -->
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-file-earmark-text me-2"></i>Markdown Report</span>
-                        <a id="mdDownloadLink" href="#" class="btn btn-sm btn-outline-primary" style="display: none;">
+                        <span>
+                            <i class="bi bi-file-earmark-text me-2"></i>Markdown Report
+                        </span>
+
+                        <a id="mdDownloadLink"
+                           href="#"
+                           class="btn btn-sm btn-outline-primary"
+                           style="display: none;">
                             <i class="bi bi-download me-1"></i>Download .md
                         </a>
                     </div>
-                    <div class="card-body"><div id="reportPreview" class="report-preview text-muted">Run an evaluation to view the latest report.</div></div>
+
+                    <div class="card-body">
+                        <div id="reportPreview"
+                             class="report-preview text-muted">
+                            Run an evaluation to view the latest report.
+                        </div>
+                    </div>
                 </div>
+
             </div>
         </div>
     </div>
@@ -297,52 +417,89 @@
     <div class="modal fade" id="newProjectModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
+
                 <div class="modal-header">
                     <h5 class="modal-title">Create New Evaluation Project</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"></button>
                 </div>
+
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Project Name</label>
-                        <input type="text" id="newProjName" class="form-control" placeholder="e.g. Iris Classification Project">
+                        <input type="text"
+                               id="newProjName"
+                               class="form-control"
+                               placeholder="e.g. Iris Classification Project">
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Description</label>
-                        <textarea id="newProjDesc" class="form-control" rows="2" placeholder="Evaluate Iris dataset and model robustness"></textarea>
+                        <textarea id="newProjDesc"
+                                  class="form-control"
+                                  rows="2"
+                                  placeholder="Evaluate Iris dataset and model robustness"></textarea>
                     </div>
                 </div>
+
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="createProject()">Create Project</button>
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-primary"
+                            onclick="createProject()">
+                        Create Project
+                    </button>
                 </div>
+
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
     <script>
         let currentProject = null;
         let noiseMetrics = null;
         let noiseChart = null;
-        const quickActionLabels = [["Evaluate my model and dataset", "Evaluate"], ["Inspect my model and dataset", "Inspect"], ["Clean missing values in my dataset", "Clean data"], ["Balance my dataset", "Balance data"], ["Show my project history", "Project history"], ["Show model choices", "Pick Model"]];
+
+        const quickActionLabels = [
+            ["Inspect my model and dataset", "Inspect"],
+            ["What were the baseline metrics before any transformation?", "Baseline Metrics"],
+            ["Evaluate my model and dataset", "Full Evaluation"],
+            ["Improve my dataset", "Improve Dataset"],
+            ["Apply a targeted transformation to my dataset", "Targeted Transform"],
+            ["Generate the report", "Report"],
+            ["Give me a contextual analysis of my current project", "Contextual"],
+            ["Compare my previous and current evaluation results", "Comparison"],
+            ["Show model choices", "Pick Model"]
+        ];
 
         window.onload = async () => {
-            await fetchProjects();
             renderQuickActions();
+            await fetchProjects();
         };
 
         async function fetchProjects() {
             const res = await fetch("/projects");
             const projs = await res.json();
+
             const select = document.getElementById("projectSelect");
             select.innerHTML = '<option value="">Select or Create Project...</option>';
+
             projs.forEach(p => {
                 const opt = document.createElement("option");
                 opt.value = p.id;
                 opt.textContent = `${p.name} (${p.id})`;
                 select.appendChild(opt);
             });
+
             if (projs.length > 0) {
                 select.value = projs[0].id;
                 await loadSelectedProject();
@@ -352,16 +509,26 @@
         async function createProject() {
             const name = document.getElementById("newProjName").value.trim();
             const desc = document.getElementById("newProjDesc").value.trim();
+
             if (!name) return alert("Please enter project name");
 
             const res = await fetch("/projects", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, description: desc })
+                body: JSON.stringify({
+                    name,
+                    description: desc
+                })
             });
+
             const proj = await res.json();
-            bootstrap.Modal.getInstance(document.getElementById("newProjectModal")).hide();
+
+            bootstrap.Modal
+                .getInstance(document.getElementById("newProjectModal"))
+                .hide();
+
             await fetchProjects();
+
             document.getElementById("projectSelect").value = proj.id;
             await loadSelectedProject();
         }
@@ -373,16 +540,30 @@
             const res = await fetch(`/projects/${projId}`);
             currentProject = await res.json();
 
-            document.getElementById("currentProjectTitle").textContent = currentProject.name;
-            document.getElementById("currentProjectDesc").textContent = currentProject.description || `ID: ${currentProject.id}`;
+            document.getElementById("currentProjectTitle").textContent =
+                currentProject.name;
 
-            document.getElementById("modelBadge").className = currentProject.model_id ? "badge bg-success" : "badge bg-secondary";
-            document.getElementById("modelBadge").textContent = currentProject.model_id ? "Loaded" : "None";
+            document.getElementById("currentProjectDesc").textContent =
+                currentProject.description || `ID: ${currentProject.id}`;
 
-            document.getElementById("datasetBadge").className = currentProject.dataset_id ? "badge bg-success" : "badge bg-secondary";
-            document.getElementById("datasetBadge").textContent = currentProject.dataset_id ? "Loaded" : "None";
+            document.getElementById("modelBadge").className =
+                currentProject.model_id
+                    ? "badge bg-success"
+                    : "badge bg-secondary";
 
-            document.getElementById("runEvalBtn").disabled = !(currentProject.model_id && currentProject.dataset_id);
+            document.getElementById("modelBadge").textContent =
+                currentProject.model_id ? "Loaded" : "None";
+
+            document.getElementById("datasetBadge").className =
+                currentProject.dataset_id
+                    ? "badge bg-success"
+                    : "badge bg-secondary";
+
+            document.getElementById("datasetBadge").textContent =
+                currentProject.dataset_id ? "Loaded" : "None";
+
+            document.getElementById("runEvalBtn").disabled =
+                !(currentProject.model_id && currentProject.dataset_id);
 
             await loadSavedAssets();
             await loadVersions();
@@ -391,83 +572,203 @@
         }
 
         async function loadSavedAssets() {
-            const [modelsRes, datasetsRes] = await Promise.all([fetch("/models"), fetch("/datasets")]);
-            const models = await modelsRes.json(), datasets = await datasetsRes.json();
-            populateAssetSelect("savedModelSelect", models, currentProject.model_id, m => `${m.name} (${m.framework})`);
-            populateAssetSelect("savedDatasetSelect", datasets, currentProject.dataset_id, d => `${d.name} (${d.current_version})`);
-            const model = models.find(m => m.id === currentProject.model_id), dataset = datasets.find(d => d.id === currentProject.dataset_id);
-            document.getElementById("selectedModelName").textContent = model ? `Selected: ${model.name}` : "No model selected.";
-            document.getElementById("selectedDatasetName").textContent = dataset ? `Selected: ${dataset.name}` : "No dataset selected.";
+            const [modelsRes, datasetsRes] = await Promise.all([
+                fetch("/models"),
+                fetch("/datasets")
+            ]);
+
+            const models = await modelsRes.json();
+            const datasets = await datasetsRes.json();
+
+            populateAssetSelect(
+                "savedModelSelect",
+                models,
+                currentProject.model_id,
+                m => `${m.name} (${m.framework})`
+            );
+
+            populateAssetSelect(
+                "savedDatasetSelect",
+                datasets,
+                currentProject.dataset_id,
+                d => `${d.name} (${d.current_version})`
+            );
+
+            const model = models.find(
+                m => m.id === currentProject.model_id
+            );
+
+            const dataset = datasets.find(
+                d => d.id === currentProject.dataset_id
+            );
+
+            document.getElementById("selectedModelName").textContent =
+                model
+                    ? `Selected: ${model.name}`
+                    : "No model selected.";
+
+            document.getElementById("selectedDatasetName").textContent =
+                dataset
+                    ? `Selected: ${dataset.name}`
+                    : "No dataset selected.";
         }
+
         function populateAssetSelect(id, assets, selectedId, label) {
             const select = document.getElementById(id);
-            select.innerHTML = `<option value="">Select saved ${id.includes("Model") ? "model" : "dataset"}...</option>`;
-            assets.forEach(asset => { const option = document.createElement("option"); option.value = asset.id; option.textContent = label(asset); option.selected = asset.id === selectedId; select.appendChild(option); });
+
+            select.innerHTML =
+                `<option value="">Select saved ${id.includes("Model") ? "model" : "dataset"}...</option>`;
+
+            assets.forEach(asset => {
+                const option = document.createElement("option");
+
+                option.value = asset.id;
+                option.textContent = label(asset);
+                option.selected = asset.id === selectedId;
+
+                select.appendChild(option);
+            });
         }
+
         async function selectSavedModel() {
             const id = document.getElementById("savedModelSelect").value;
+
             if (!id || !currentProject) return;
-            const response = await fetch(`/projects/${currentProject.id}/models/${id}/select`, { method: "POST" });
-            if (!response.ok) return alert(`Unable to select model: ${(await response.json()).detail || response.statusText}`);
+
+            const response = await fetch(
+                `/projects/${currentProject.id}/models/${id}/select`,
+                { method: "POST" }
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                return alert(
+                    `Unable to select model: ${errorData.detail || response.statusText}`
+                );
+            }
+
             await loadSelectedProject();
             await showCompatibility();
         }
+
         async function selectSavedDataset() {
             const id = document.getElementById("savedDatasetSelect").value;
+
             if (!id || !currentProject) return;
-            const response = await fetch(`/projects/${currentProject.id}/datasets/${id}/select`, { method: "POST" });
-            if (!response.ok) return alert(`Unable to select dataset: ${(await response.json()).detail || response.statusText}`);
+
+            const response = await fetch(
+                `/projects/${currentProject.id}/datasets/${id}/select`,
+                { method: "POST" }
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                return alert(
+                    `Unable to select dataset: ${errorData.detail || response.statusText}`
+                );
+            }
+
             await loadSelectedProject();
             await showCompatibility();
         }
 
         async function applyDatasetAction() {
-            if (!currentProject?.dataset_id) return alert("Select a dataset first");
+            if (!currentProject?.dataset_id) {
+                return alert("Select a dataset first");
+            }
+
             const operation = document.getElementById("datasetAction").value;
-            const res = await fetch(`/datasets/${currentProject.dataset_id}/transform/${operation}`, { method: "POST" });
+
+            const res = await fetch(
+                `/datasets/${currentProject.dataset_id}/transform/${operation}`,
+                { method: "POST" }
+            );
+
             const data = await res.json();
-            if (!res.ok) return alert(data.detail || "Dataset action failed");
-            addChatMessage("assistant", `Dataset ${operation.replaceAll("_", " ")} completed: ${data.version.version}.`);
+
+            if (!res.ok) {
+                return alert(data.detail || "Dataset action failed");
+            }
+
+            addChatMessage(
+                "assistant",
+                `Dataset ${operation.replaceAll("_", " ")} completed: ${data.version.version}.`
+            );
+
             await loadSelectedProject();
         }
 
         async function showCompatibility() {
-            if (!currentProject?.model_id || !currentProject?.dataset_id) return;
-            const res = await fetch(`/projects/${currentProject.id}/compatibility`);
+            if (!currentProject?.model_id || !currentProject?.dataset_id) {
+                return;
+            }
+
+            const res = await fetch(
+                `/projects/${currentProject.id}/compatibility`
+            );
+
             const result = await res.json();
-            const message = result.is_compatible ? "Model and dataset are compatible and ready to evaluate." : `Compatibility warning: ${result.issues.join(" ")}`;
+
+            const message = result.is_compatible
+                ? "Model and dataset are compatible and ready to evaluate."
+                : `Compatibility warning: ${result.issues.join(" ")}`;
+
             addChatMessage("assistant", message);
         }
 
         async function loadBenchmarkPreset() {
-            const presetId = document.getElementById("presetDropdown").value;
+            const presetId =
+                document.getElementById("presetDropdown").value;
+
             if (!currentProject) {
-                // Auto-create a project for the preset
                 const res = await fetch("/projects", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        name: `${presetId.toUpperCase()} Evaluation Project`, 
-                        description: `Auto-generated benchmark project for ${presetId}` 
+                    body: JSON.stringify({
+                        name: `${presetId.toUpperCase()} Evaluation Project`,
+                        description: `Auto-generated benchmark project for ${presetId}`
                     })
                 });
+
                 const newProj = await res.json();
+
                 await fetchProjects();
-                document.getElementById("projectSelect").value = newProj.id;
+
+                document.getElementById("projectSelect").value =
+                    newProj.id;
+
                 await loadSelectedProject();
             }
 
-            setAgentStatus("Loading Preset...", "bg-info text-dark");
-            addChatMessage("user", `Load ${presetId} benchmark model and dataset.`);
+            setAgentStatus(
+                "Loading Preset...",
+                "bg-info text-dark"
+            );
 
-            const res = await fetch(`/projects/${currentProject.id}/load-preset/${presetId}`, {
-                method: "POST"
-            });
+            addChatMessage(
+                "user",
+                `Load ${presetId} benchmark model and dataset.`
+            );
+
+            const res = await fetch(
+                `/projects/${currentProject.id}/load-preset/${presetId}`,
+                { method: "POST" }
+            );
+
             const data = await res.json();
+
             if (data.status === "success") {
-                const cachedMsg = data.was_cached ? "(Retrieved from local storage cache)" : "(Downloaded and cached to local storage)";
-                addChatMessage("assistant", `Successfully loaded ${presetId} pre-trained model and dataset ${cachedMsg}! You can now click 'Run Agentic Evaluation' or chat with me.`);
+                const cachedMsg = data.was_cached
+                    ? "(Retrieved from local storage cache)"
+                    : "(Downloaded and cached to local storage cache)";
+
+                addChatMessage(
+                    "assistant",
+                    `Successfully loaded ${presetId} pre-trained model and dataset ${cachedMsg}! You can now click 'Run Agentic Evaluation' or chat with me.`
+                );
+
                 await loadSelectedProject();
+
                 setAgentStatus("Ready", "bg-success");
             } else {
                 alert("Error loading preset: " + JSON.stringify(data));
@@ -476,18 +777,30 @@
         }
 
         async function uploadModel() {
-            if (!currentProject) return alert("Select a project first");
-            const fileInput = document.getElementById("modelFileInput");
-            if (!fileInput.files[0]) return alert("Select a model file");
+            if (!currentProject) {
+                return alert("Select a project first");
+            }
+
+            const fileInput =
+                document.getElementById("modelFileInput");
+
+            if (!fileInput.files[0]) {
+                return alert("Select a model file");
+            }
 
             const formData = new FormData();
             formData.append("file", fileInput.files[0]);
 
-            const res = await fetch(`/projects/${currentProject.id}/models`, {
-                method: "POST",
-                body: formData
-            });
+            const res = await fetch(
+                `/projects/${currentProject.id}/models`,
+                {
+                    method: "POST",
+                    body: formData
+                }
+            );
+
             const data = await res.json();
+
             if (data.status === "success") {
                 alert("Model uploaded and inspected successfully!");
                 await loadSelectedProject();
@@ -497,18 +810,30 @@
         }
 
         async function uploadDataset() {
-            if (!currentProject) return alert("Select a project first");
-            const fileInput = document.getElementById("datasetFileInput");
-            if (!fileInput.files[0]) return alert("Select a dataset file");
+            if (!currentProject) {
+                return alert("Select a project first");
+            }
+
+            const fileInput =
+                document.getElementById("datasetFileInput");
+
+            if (!fileInput.files[0]) {
+                return alert("Select a dataset file");
+            }
 
             const formData = new FormData();
             formData.append("file", fileInput.files[0]);
 
-            const res = await fetch(`/projects/${currentProject.id}/datasets`, {
-                method: "POST",
-                body: formData
-            });
+            const res = await fetch(
+                `/projects/${currentProject.id}/datasets`,
+                {
+                    method: "POST",
+                    body: formData
+                }
+            );
+
             const data = await res.json();
+
             if (data.status === "success") {
                 alert("Dataset uploaded and initialized as v001!");
                 await loadSelectedProject();
@@ -518,48 +843,100 @@
         }
 
         async function loadVersions() {
-            if (!currentProject || !currentProject.dataset_id) return;
-            const res = await fetch(`/datasets/${currentProject.dataset_id}/versions`);
+            if (!currentProject || !currentProject.dataset_id) {
+                return;
+            }
+
+            const res = await fetch(
+                `/datasets/${currentProject.dataset_id}/versions`
+            );
+
             const versions = await res.json();
+
             const list = document.getElementById("versionList");
             list.innerHTML = "";
+
             versions.forEach(v => {
                 const li = document.createElement("li");
-                li.className = "list-group-item d-flex justify-content-between align-items-center";
-                li.innerHTML = `<div><strong>${v.version}</strong> (${v.operation})<br><small class="text-muted">${v.row_count} rows, ${v.column_count} cols</small></div>`;
+
+                li.className =
+                    "list-group-item d-flex justify-content-between align-items-center";
+
+                li.innerHTML =
+                    `<div><strong>${v.version}</strong> (${v.operation})<br>
+                    <small class="text-muted">${v.row_count} rows, ${v.column_count} cols</small></div>`;
+
                 list.appendChild(li);
             });
         }
 
         async function loadReports() {
             if (!currentProject) return;
-            const res = await fetch(`/projects/${currentProject.id}/reports`);
+
+            const res = await fetch(
+                `/projects/${currentProject.id}/reports`
+            );
+
             const reports = await res.json();
+
             if (reports.length > 0) {
                 const latest = reports[0];
-                const link = document.getElementById("mdDownloadLink");
-                link.href = `/reports/${latest.id}/download`;
+
+                const link =
+                    document.getElementById("mdDownloadLink");
+
+                link.href =
+                    `/reports/${latest.id}/download`;
+
                 link.style.display = "inline-block";
-                const report = await (await fetch(`/reports/${latest.id}`)).json();
-                document.getElementById("reportPreview").innerHTML = markdownToHtml(report.content_markdown);
+
+                const report = await (
+                    await fetch(`/reports/${latest.id}`)
+                ).json();
+
+                document.getElementById("reportPreview").innerHTML =
+                    markdownToHtml(report.content_markdown);
             } else {
-                document.getElementById("reportPreview").textContent = "Run an evaluation to view the latest report.";
+                document.getElementById("reportPreview").textContent =
+                    "Run an evaluation to view the latest report.";
             }
         }
 
         async function triggerFullEvaluation() {
             if (!currentProject) return;
-            setAgentStatus("Running...", "bg-warning text-dark");
-            addChatMessage("user", "Run full agentic evaluation and data improvement.");
 
-            const res = await fetch(`/projects/${currentProject.id}/evaluate`, { method: "POST" });
+            setAgentStatus(
+                "Running...",
+                "bg-warning text-dark"
+            );
+
+            addChatMessage(
+                "user",
+                "Run full agentic evaluation and data improvement."
+            );
+
+            const res = await fetch(
+                `/projects/${currentProject.id}/evaluate`,
+                { method: "POST" }
+            );
+
             const data = await res.json();
 
-            setAgentStatus("Completed", "bg-success");
-            addChatMessage("assistant", `Evaluation complete! Actions taken: ${data.actions_taken.join(" -> ")}`);
+            setAgentStatus(
+                "Completed",
+                "bg-success"
+            );
+
+            addChatMessage(
+                "assistant",
+                `Evaluation complete! Actions taken: ${data.actions_taken.join(" -> ")}`
+            );
+
             updateActionsLog(data.actions_taken);
 
-            noiseMetrics = data.robustness_metrics || null;
+            noiseMetrics =
+                data.robustness_metrics || null;
+
             renderNoiseChart();
 
             await loadVersions();
@@ -567,148 +944,678 @@
         }
 
         async function sendChatMessage() {
-            const input = document.getElementById("chatInput");
-            const msg = input.value.trim();
+            const input =
+                document.getElementById("chatInput");
+
+            const msg =
+                input.value.trim();
+
             if (!msg || !currentProject) return;
+
             input.value = "";
 
             addChatMessage("user", msg);
-            setAgentStatus("Thinking...", "bg-warning text-dark");
 
-            const res = await fetch(`/projects/${currentProject.id}/chat`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: msg })
-            });
+            setAgentStatus(
+                "Thinking...",
+                "bg-warning text-dark"
+            );
+
+            const res = await fetch(
+                `/projects/${currentProject.id}/chat`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        message: msg
+                    })
+                }
+            );
+
             const data = await res.json();
-            setAgentStatus("Completed", "bg-success");
-            addChatMessage("assistant", data.message);
-            if (data.actions_taken) updateActionsLog(data.actions_taken);
-            if (data.robustness_metrics) { noiseMetrics = data.robustness_metrics; renderNoiseChart(); }
+
+            setAgentStatus(
+                "Completed",
+                "bg-success"
+            );
+
+            addChatMessage(
+                "assistant",
+                data.message
+            );
+
+            if (data.actions_taken) {
+                updateActionsLog(data.actions_taken);
+            }
+
+            if (data.robustness_metrics) {
+                noiseMetrics =
+                    data.robustness_metrics;
+
+                renderNoiseChart();
+            }
+
             await loadReports();
             await loadVersions();
         }
 
+        /*
+         * MODEL CHOOSER
+         *
+         * Pick Model -> choose model -> fetch compatible datasets.
+         */
         async function showModelChooser() {
-            const res = await fetch("/models");
-            const models = await res.json();
-            addChatMessage("assistant", "Pick a model and I’ll show matching datasets.");
-            renderChoiceButtons(models.map(m => ({
-                label: `${m.name} (${m.framework})`,
-                run: () => selectModelFromChat(m.id, m.name)
-            })), "Saved models");
-        }
-
-        async function selectModelFromChat(modelId, modelName) {
-            if (!currentProject) return;
-            await fetch(`/projects/${currentProject.id}/models/${modelId}/select`, { method: "POST" });
-            await loadSelectedProject();
-            addChatMessage("assistant", `Selected ${modelName}. Fetching compatible datasets.`);
-            const res = await fetch(`/models/${modelId}/compatible-datasets`);
-            const data = await res.json();
-            if (!data.compatible_datasets || data.compatible_datasets.length === 0) {
-                addChatMessage("assistant", "No compatible datasets found for this model.");
+            if (!currentProject) {
+                addChatMessage(
+                    "assistant",
+                    "Please select a project first."
+                );
                 return;
             }
-            renderChoiceButtons((data.compatible_datasets || []).map(d => ({
-                label: `${d.name} (${d.current_version})`,
-                run: () => selectDatasetFromChat(d.id, d.name)
-            })), "Compatible datasets");
+
+            try {
+                const res = await fetch("/models");
+
+                if (!res.ok) {
+                    throw new Error(
+                        `Failed to load models: ${res.status}`
+                    );
+                }
+
+                const models = await res.json();
+
+                if (!models || models.length === 0) {
+                    addChatMessage(
+                        "assistant",
+                        "No saved models are available."
+                    );
+                    return;
+                }
+
+                addChatMessage(
+                    "assistant",
+                    "Pick a model and I’ll show matching datasets."
+                );
+
+                renderChoiceButtons(
+                    models.map(m => ({
+                        label: `${m.name} (${m.framework})`,
+                        run: () =>
+                            selectModelFromChat(
+                                m.id,
+                                m.name
+                            )
+                    })),
+                    "Saved models"
+                );
+
+            } catch (error) {
+                console.error(
+                    "Model chooser error:",
+                    error
+                );
+
+                addChatMessage(
+                    "assistant",
+                    "Unable to load the available models."
+                );
+            }
         }
 
-        async function selectDatasetFromChat(datasetId, datasetName) {
+        /*
+         * MODEL SELECTION
+         *
+         * IMPORTANT:
+         * Do NOT call loadSelectedProject() here.
+         *
+         * loadSelectedProject() calls loadChatHistory(),
+         * which clears chatBox and removes the model/dataset
+         * choice buttons.
+         */
+        async function selectModelFromChat(
+            modelId,
+            modelName
+        ) {
             if (!currentProject) return;
-            await fetch(`/projects/${currentProject.id}/datasets/${datasetId}/select`, { method: "POST" });
-            addChatMessage("assistant", `Selected ${datasetName}. You can evaluate now.`);
-            await loadSelectedProject();
-            await loadVersions();
+
+            try {
+                const selectResponse = await fetch(
+                    `/projects/${currentProject.id}/models/${modelId}/select`,
+                    {
+                        method: "POST"
+                    }
+                );
+
+                if (!selectResponse.ok) {
+                    const errorData =
+                        await selectResponse.json().catch(
+                            () => ({})
+                        );
+
+                    addChatMessage(
+                        "assistant",
+                        `Unable to select model: ${errorData.detail || selectResponse.statusText}`
+                    );
+
+                    return;
+                }
+
+                /*
+                 * Update local project state instead of
+                 * reloading the entire project/chat.
+                 */
+                currentProject.model_id =
+                    modelId;
+
+                document.getElementById(
+                    "modelBadge"
+                ).className =
+                    "badge bg-success";
+
+                document.getElementById(
+                    "modelBadge"
+                ).textContent =
+                    "Loaded";
+
+                document.getElementById(
+                    "runEvalBtn"
+                ).disabled =
+                    !currentProject.dataset_id;
+
+                addChatMessage(
+                    "assistant",
+                    `Selected ${modelName}. Fetching compatible datasets...`
+                );
+
+                const res = await fetch(
+                    `/models/${modelId}/compatible-datasets`
+                );
+
+                if (!res.ok) {
+                    const errorData =
+                        await res.json().catch(
+                            () => ({})
+                        );
+
+                    console.error(
+                        "Compatible dataset endpoint error:",
+                        res.status,
+                        errorData
+                    );
+
+                    addChatMessage(
+                        "assistant",
+                        `Could not fetch compatible datasets. Server returned ${res.status}.`
+                    );
+
+                    return;
+                }
+
+                const data = await res.json();
+
+                console.log(
+                    "Compatible dataset response:",
+                    data
+                );
+
+                const compatibleDatasets =
+                    data.compatible_datasets || [];
+
+                if (compatibleDatasets.length === 0) {
+                    addChatMessage(
+                        "assistant",
+                        "No compatible datasets found for this model."
+                    );
+                    return;
+                }
+
+                addChatMessage(
+                    "assistant",
+                    "Select a compatible dataset:"
+                );
+
+                renderChoiceButtons(
+                    compatibleDatasets.map(d => ({
+                        label: `${d.name} (${d.current_version})`,
+                        run: () =>
+                            selectDatasetFromChat(
+                                d.id,
+                                d.name
+                            )
+                    })),
+                    "Compatible datasets"
+                );
+
+            } catch (error) {
+                console.error(
+                    "Model selection error:",
+                    error
+                );
+
+                addChatMessage(
+                    "assistant",
+                    `Error while finding compatible datasets: ${error.message}`
+                );
+            }
+        }
+
+        /*
+         * DATASET SELECTION
+         *
+         * Selecting a compatible dataset updates the
+         * current project without reloading chat history.
+         */
+        async function selectDatasetFromChat(
+            datasetId,
+            datasetName
+        ) {
+            if (!currentProject) return;
+
+            try {
+                const response = await fetch(
+                    `/projects/${currentProject.id}/datasets/${datasetId}/select`,
+                    {
+                        method: "POST"
+                    }
+                );
+
+                if (!response.ok) {
+                    const errorData =
+                        await response.json().catch(
+                            () => ({})
+                        );
+
+                    addChatMessage(
+                        "assistant",
+                        `Unable to select dataset: ${errorData.detail || response.statusText}`
+                    );
+
+                    return;
+                }
+
+                /*
+                 * Do not call loadSelectedProject() here.
+                 * It would reload chat history and remove
+                 * the selection messages/buttons.
+                 */
+                currentProject.dataset_id =
+                    datasetId;
+
+                document.getElementById(
+                    "datasetBadge"
+                ).className =
+                    "badge bg-success";
+
+                document.getElementById(
+                    "datasetBadge"
+                ).textContent =
+                    "Loaded";
+
+                document.getElementById(
+                    "runEvalBtn"
+                ).disabled =
+                    !(currentProject.model_id &&
+                      currentProject.dataset_id);
+
+                addChatMessage(
+                    "assistant",
+                    `Selected ${datasetName}. Model and dataset are ready. You can evaluate now.`
+                );
+
+                await loadSavedAssets();
+                await loadVersions();
+
+            } catch (error) {
+                console.error(
+                    "Dataset selection error:",
+                    error
+                );
+
+                addChatMessage(
+                    "assistant",
+                    `Error while selecting dataset: ${error.message}`
+                );
+            }
         }
 
         async function loadChatHistory() {
             if (!currentProject) return;
-            const res = await fetch(`/projects/${currentProject.id}/chat/history`);
+
+            const res = await fetch(
+                `/projects/${currentProject.id}/chat/history`
+            );
+
             const history = await res.json();
-            const chatBox = document.getElementById("chatBox");
+
+            const chatBox =
+                document.getElementById("chatBox");
+
             chatBox.innerHTML = "";
-            history.forEach(h => addChatMessage(h.sender, h.message));
+
+            addChatMessage(
+                "assistant",
+                "Welcome! Select a Benchmark Preset (like 🌸 Iris) or upload custom files. Ask me to evaluate, inspect, clean, or balance your dataset!"
+            );
+
+            if (!history || history.length === 0) {
+                return;
+            }
+
+            history.forEach(h =>
+                addChatMessage(
+                    h.sender,
+                    h.message
+                )
+            );
         }
 
-        function addChatMessage(sender, text) {
-            const chatBox = document.getElementById("chatBox");
-            const msgDiv = document.createElement("div");
-            msgDiv.className = `chat-msg ${sender === "user" ? "chat-user" : "chat-bot"}`;
+        function addChatMessage(
+            sender,
+            text
+        ) {
+            const chatBox =
+                document.getElementById("chatBox");
+
+            const msgDiv =
+                document.createElement("div");
+
+            msgDiv.className =
+                `chat-msg ${
+                    sender === "user"
+                        ? "chat-user"
+                        : "chat-bot"
+                }`;
+
             msgDiv.textContent = text;
+
             chatBox.appendChild(msgDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
+
+            chatBox.scrollTop =
+                chatBox.scrollHeight;
         }
 
-        function renderChoiceButtons(items, title) {
-            const chatBox = document.getElementById("chatBox");
-            const msgDiv = document.createElement("div");
-            msgDiv.className = "chat-msg chat-bot";
+        function renderChoiceButtons(
+            items,
+            title
+        ) {
+            const chatBox =
+                document.getElementById("chatBox");
+
+            const msgDiv =
+                document.createElement("div");
+
+            msgDiv.className =
+                "chat-msg chat-bot";
+
             if (title) {
-                const head = document.createElement("div");
-                head.className = "small fw-semibold mb-2";
-                head.textContent = title;
+                const head =
+                    document.createElement("div");
+
+                head.className =
+                    "small fw-semibold mb-2";
+
+                head.textContent =
+                    title;
+
                 msgDiv.appendChild(head);
             }
+
             items.forEach(item => {
-                const button = document.createElement("button");
-                button.className = "btn btn-sm btn-outline-primary me-2 mb-2";
-                button.textContent = item.label;
-                button.onclick = item.run;
+                const button =
+                    document.createElement("button");
+
+                button.className =
+                    "btn btn-sm btn-outline-primary me-2 mb-2";
+
+                button.textContent =
+                    item.label;
+
+                button.onclick =
+                    item.run;
+
                 msgDiv.appendChild(button);
             });
+
             chatBox.appendChild(msgDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
+
+            chatBox.scrollTop =
+                chatBox.scrollHeight;
         }
 
         function renderQuickActions() {
-            const container = document.getElementById("quickActions");
+            const container =
+                document.getElementById(
+                    "quickActions"
+                );
+
             container.innerHTML = "";
-            quickActionLabels.forEach(([message, label]) => {
-                const button = document.createElement("button");
-                button.className = "btn btn-sm btn-outline-primary"; button.textContent = label;
-                button.onclick = () => {
-                    if (message === "Show model choices") return showModelChooser();
-                    document.getElementById("chatInput").value = message;
-                    sendChatMessage();
-                };
-                container.appendChild(button);
-            });
+
+            quickActionLabels.forEach(
+                ([message, label]) => {
+
+                    const button =
+                        document.createElement("button");
+
+                    button.className =
+                        "btn btn-sm btn-outline-primary";
+
+                    button.textContent =
+                        label;
+
+                    button.onclick = () => {
+
+                        if (
+                            message ===
+                            "Show model choices"
+                        ) {
+                            return showModelChooser();
+                        }
+
+                        document.getElementById(
+                            "chatInput"
+                        ).value = message;
+
+                        sendChatMessage();
+                    };
+
+                    container.appendChild(
+                        button
+                    );
+                }
+            );
         }
 
         function renderNoiseChart() {
-            const empty = document.getElementById("chartEmptyState"), canvas = document.getElementById("noiseComparisonChart");
-            const metric = document.getElementById("metricSelect").value;
-            const clean = noiseMetrics && noiseMetrics.clean_metrics && noiseMetrics.clean_metrics[metric];
-            const noisy = noiseMetrics && noiseMetrics.noisy_metrics && noiseMetrics.noisy_metrics[metric];
-            if (clean === undefined || noisy === undefined) { empty.style.display = "block"; if (noiseChart) { noiseChart.destroy(); noiseChart = null; } return; }
+            const empty =
+                document.getElementById(
+                    "chartEmptyState"
+                );
+
+            const canvas =
+                document.getElementById(
+                    "noiseComparisonChart"
+                );
+
+            const metric =
+                document.getElementById(
+                    "metricSelect"
+                ).value;
+
+            const clean =
+                noiseMetrics &&
+                noiseMetrics.clean_metrics &&
+                noiseMetrics.clean_metrics[metric];
+
+            const noisy =
+                noiseMetrics &&
+                noiseMetrics.noisy_metrics &&
+                noiseMetrics.noisy_metrics[metric];
+
+            if (
+                clean === undefined ||
+                noisy === undefined
+            ) {
+                empty.style.display = "block";
+
+                if (noiseChart) {
+                    noiseChart.destroy();
+                    noiseChart = null;
+                }
+
+                return;
+            }
+
             empty.style.display = "none";
-            if (noiseChart) noiseChart.destroy();
-            noiseChart = new Chart(canvas, { type: "bar", data: { labels: ["Without noise", "With Gaussian noise"], datasets: [{ label: document.getElementById("metricSelect").selectedOptions[0].text, data: [clean * 100, noisy * 100], backgroundColor: ["#2563eb", "#f97316"], borderRadius: 5 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, ticks: { callback: value => `${value}%` } } } } });
+
+            if (noiseChart) {
+                noiseChart.destroy();
+            }
+
+            noiseChart = new Chart(
+                canvas,
+                {
+                    type: "bar",
+
+                    data: {
+                        labels: [
+                            "Without noise",
+                            "With Gaussian noise"
+                        ],
+
+                        datasets: [{
+                            label:
+                                document
+                                    .getElementById(
+                                        "metricSelect"
+                                    )
+                                    .selectedOptions[0]
+                                    .text,
+
+                            data: [
+                                clean * 100,
+                                noisy * 100
+                            ],
+
+                            backgroundColor: [
+                                "#2563eb",
+                                "#f97316"
+                            ],
+
+                            borderRadius: 5
+                        }]
+                    },
+
+                    options: {
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+
+                                ticks: {
+                                    callback:
+                                        value =>
+                                            `${value}%`
+                                }
+                            }
+                        }
+                    }
+                }
+            );
         }
 
         function updateActionsLog(actions) {
-            const logDiv = document.getElementById("actionsLog");
+            const logDiv =
+                document.getElementById(
+                    "actionsLog"
+                );
+
             logDiv.innerHTML = "";
+
             actions.forEach(a => {
-                const span = document.createElement("span");
-                span.className = "action-pill";
-                span.innerHTML = `<i class="bi bi-check-circle me-1"></i>${a}`;
-                logDiv.appendChild(span);
+                const span =
+                    document.createElement("span");
+
+                span.className =
+                    "action-pill";
+
+                span.innerHTML =
+                    `<i class="bi bi-check-circle me-1"></i>${a}`;
+
+                logDiv.appendChild(
+                    span
+                );
             });
         }
 
-        function setAgentStatus(text, badgeClass) {
-            const badge = document.getElementById("agentStatusBadge");
-            badge.textContent = text;
-            badge.className = `badge ${badgeClass}`;
+        function setAgentStatus(
+            text,
+            badgeClass
+        ) {
+            const badge =
+                document.getElementById(
+                    "agentStatusBadge"
+                );
+
+            badge.textContent =
+                text;
+
+            badge.className =
+                `badge ${badgeClass}`;
         }
 
         function markdownToHtml(markdown) {
-            const escaped = markdown.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            return escaped.replace(/^### (.*)$/gm, "<h5>$1</h5>").replace(/^## (.*)$/gm, "<h4>$1</h4>").replace(/^# (.*)$/gm, "<h3>$1</h3>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/`([^`]+)`/g, "<code>$1</code>").replace(/^- (.*)$/gm, "<li>$1</li>").replace(/\n/g, "<br>");
+            const escaped =
+                markdown
+                    .replace(
+                        /&/g,
+                        "&amp;"
+                    )
+                    .replace(
+                        /</g,
+                        "&lt;"
+                    )
+                    .replace(
+                        />/g,
+                        "&gt;"
+                    );
+
+            return escaped
+                .replace(
+                    /^### (.*)$/gm,
+                    "<h5>$1</h5>"
+                )
+                .replace(
+                    /^## (.*)$/gm,
+                    "<h4>$1</h4>"
+                )
+                .replace(
+                    /^# (.*)$/gm,
+                    "<h3>$1</h3>"
+                )
+                .replace(
+                    /\*\*(.*?)\*\*/g,
+                    "<strong>$1</strong>"
+                )
+                .replace(
+                    /`([^`]+)`/g,
+                    "<code>$1</code>"
+                )
+                .replace(
+                    /^- (.*)$/gm,
+                    "<li>$1</li>"
+                )
+                .replace(
+                    /\n/g,
+                    "<br>"
+                );
         }
     </script>
 </body>

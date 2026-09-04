@@ -1,0 +1,13 @@
+{
+  "version": "v018",
+  "parent_version": "v001",
+  "file_path": "C:\\Users\\anibh\\OneDrive\\Desktop\\AI workflow\\Project_CDAC\\AGENTIC-ML-EVALUATION-PLATFORM\\storage\\datasets\\dataset_proj_20260901_102752\\versions\\v018\\dataset.csv",
+  "operation": "prune",
+  "parameters": {
+    "method": "remove",
+    "removed_rows_count": 4
+  },
+  "row_count": 106,
+  "column_count": 5,
+  "created_at": "2026-09-04T07:15:31.649240"
+}
