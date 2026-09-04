@@ -1,0 +1,85 @@
+# LOAD QWEN 30B + START HTTP API + NGROK
+
+import threading
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from flask import Flask, request, jsonify
+from pyngrok import ngrok
+
+MODEL_NAME = "Qwen/Qwen3-30B-A3B-Instruct-2507"
+NGROK_AUTH_TOKEN ="3IqaxP6GnyfS7whxaU8s2nBX6JQ_3b4ga32PH3yXdjX9JcTPN"
+
+# Load Qwen
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+
+model = AutoModelForCausalLM.from_pretrained(
+    MODEL_NAME,
+    torch_dtype=torch.bfloat16,
+    device_map="auto"
+)
+
+# Flask API
+app = Flask(__name__)
+
+@app.route("/generate", methods=["POST"])
+def generate():
+    data = request.get_json()
+
+    prompt = data["prompt"]
+    max_new_tokens = data.get("max_new_tokens", 1024)
+    temperature = data.get("temperature", 0.2)
+
+    inputs = tokenizer(
+        prompt,
+        return_tensors="pt"
+    ).to(model.device)
+
+    with torch.no_grad():
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+            do_sample=temperature > 0
+        )
+
+    generated = outputs[0][inputs["input_ids"].shape[1]:]
+
+    response = tokenizer.decode(
+        generated,
+        skip_special_tokens=True
+    )
+
+    return jsonify({
+        "response": response
+    })
+
+
+# Start Flask
+def run_server():
+    app.run(
+        host="0.0.0.0",
+        port=8001,
+        debug=False,
+        use_reloader=False
+    )
+
+threading.Thread(
+    target=run_server,
+    daemon=True
+).start()
+
+
+# Start ngrok
+ngrok.set_auth_token(NGROK_AUTH_TOKEN)
+
+tunnel = ngrok.connect(8001, "http")
+
+print("=" * 60)
+print("QWEN 30B IS RUNNING")
+print("=" * 60)
+print("PUBLIC API:")
+print(tunnel.public_url)
+print()
+print("GENERATE ENDPOINT:")
+print(tunnel.public_url + "/generate")
+print("=" * 60)
