@@ -1,5 +1,6 @@
 ================================================================================
 AGENTIC ML EVALUATION PLATFORM - SYSTEM & EXECUTION WORKFLOW
+Last Updated: 2026-09-04T09:27:59+05:30
 ================================================================================
 
 This document provides a clear, plain-text walkthrough of the entire system 
@@ -37,6 +38,7 @@ It is a technique used in machine learning to handle imbalanced datasets.
                     |                                      |
                     |  - Explicit AgentState (Variables)   |
                     |  - Agent Planner (Decision Logic)    |
+                    |    [Qwen via OpenAI-compat HTTP API] |
                     |  - Tool Registry (15 Deterministic)  |
                     +-------------------+------------------+
                                         |
@@ -234,12 +236,18 @@ app/
 ├── agent/
 │   ├── state.py          -> Explicit AgentState tracking variables, metrics, logs
 │   ├── tools.py          -> Central Tool Registry defining the 15 deterministic tools
-│   ├── planner.py        -> Decision engine (Ollama structured JSON + deterministic fallback)
+│   ├── planner.py        -> Decision engine (Qwen via OpenAI-compat HTTP API + deterministic fallback)
+│   ├── planner1.py       -> Legacy Ollama decision engine (superseded by planner.py)
 │   └── agent.py          -> Closed-loop runner orchestrating the step-by-step cycle
 │
 ├── services/
 │   ├── project_service.py-> Project creation and file upload handlers
 │   └── preset_service.py -> Automatic download & caching for Iris, Cancer, Wine benchmarks
+│
+├── llm/
+│   ├── qwen_client.py    -> HTTP client for Qwen (Molab) via OpenAI-compat API (POST /chat/completions)
+│   ├── ollama_client.py  -> Legacy Ollama client (planner1.py only)
+│   └── prompts.py        -> System prompt & instruction templates for the agent
 │
 ├── reports/
 │   └── generator.py      -> Compiles single clean Markdown (.md) evaluation report
@@ -274,4 +282,31 @@ tests/
 
 3. Run Automated Test Suite:
    python -m pytest tests/test_adapters_and_evaluators.py tests/test_presets.py -v
+
+Server Architecture:
+   FastAPI App (Uvicorn)
+   - Host    : 0.0.0.0:8000  (REST API + Web Dashboard)
+   - Protocol: HTTP/1.1
+
+   Qwen 30B (Molab + ngrok) - Plain Flask HTTP API
+   - Public  : https://lair-likewise-apostle.ngrok-free.dev   <- changes each Molab session
+   - Endpoint: POST /generate
+   - Request : {"prompt": str, "max_new_tokens": int, "temperature": float}
+   - Response: {"response": str}
+   - Client  : app/llm/qwen_client.py  (httpx, timeout=120s)
+   - Used by : app/agent/planner.py (action decisions)
+               app/api/chat.py     (intent classification + contextual answers)
+               app/reports/generator.py (report narrative)
+   - Note    : Qwen <think>...</think> reasoning tags are stripped before use
+   - Config  : Set QWEN_BASE_URL= in .env to update URL without editing code
+
+Chat Intent Routing (app/api/chat.py):
+   Every user message is classified by Qwen into one of three intents:
+   - "deterministic" -> Run AgentRunner workflow (evaluate, balance, inspect, etc.)
+   - "contextual"    -> Retrieve ChromaDB memory + ask Qwen to answer the question
+   - "comparison"    -> Retrieve ChromaDB memory + ask Qwen to compare and give opinion
+   Fallback: keyword heuristic if Qwen is unreachable
+
+Reminder: When Molab restarts and ngrok gives you a new URL, just add/update this in your .env file — no code changes needed:
+QWEN_BASE_URL=https://<new-ngrok-url>
 

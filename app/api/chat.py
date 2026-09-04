@@ -8,8 +8,12 @@ from app.core.database import db
 from app.agent.state import AgentState
 from app.agent.agent import AgentRunner
 from app.memory.chroma_memory import project_memory
-from app.llm.ollama_client import ollama_client
-from app.llm.prompts import CHAT_RESPONSE_PROMPT
+from app.llm.qwen_client import qwen_client
+from app.llm.prompts import (
+    CHAT_RESPONSE_PROMPT,
+    CHAT_COMPARISON_PROMPT,
+    INTENT_CLASSIFICATION_PROMPT,
+)
 
 router = APIRouter(tags=["chat"])
 
@@ -50,13 +54,32 @@ def handle_project_chat(project_id: str, payload: ChatRequest):
             conn.commit()
         return ChatResponse(message=reply_text, status="completed", actions_taken=[])
 
-    # Determine if this is an execution request or conversational query
-    is_action_prompt = any(k in user_msg.lower() for k in [
-        "evaluate", "improve", "balance", "transform", "run", "clean", "fix", "inspect", "start", "do it"
-    ])
+    # ------------------------------------------------------------------
+    # Step 1: Classify intent with Qwen
+    # ------------------------------------------------------------------
+    intent_result = qwen_client.generate_json(
+        prompt=INTENT_CLASSIFICATION_PROMPT.format(message=user_msg),
+    )
+    intent = (intent_result or {}).get("intent", "contextual")
 
-    if is_action_prompt and proj.model_id and proj.dataset_id:
-        # Retrieve model and dataset paths
+    # Fallback: if Qwen is unreachable, use keyword heuristic
+    if not intent_result:
+        action_keywords = {
+            "evaluate", "improve", "balance", "transform", "run",
+            "clean", "fix", "inspect", "start", "do it", "generate report",
+        }
+        intent = (
+            "deterministic"
+            if any(k in user_msg.lower() for k in action_keywords)
+            else "contextual"
+        )
+
+    # ------------------------------------------------------------------
+    # Step 2: Route by intent
+    # ------------------------------------------------------------------
+
+    # --- DETERMINISTIC: run the agentic workflow ---
+    if intent == "deterministic" and proj.model_id and proj.dataset_id:
         with db._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT file_path FROM models WHERE id = ?", (proj.model_id,))
@@ -77,19 +100,22 @@ def handle_project_chat(project_id: str, payload: ChatRequest):
             runner = AgentRunner(state)
             final_state = runner.run_until_complete()
 
-            # Compile conversational response
             action_names = [a.action for a in final_state.actions_taken]
-            reply_text = f"I evaluated your model and dataset.\n"
+            reply_text = "I evaluated your model and dataset.\n"
             if final_state.baseline_metrics:
-                reply_text += f"- Baseline Accuracy: {final_state.baseline_metrics.get('accuracy', 'N/A')}, Macro F1: {final_state.baseline_metrics.get('f1_macro', 'N/A')}\n"
+                reply_text += (
+                    f"- Baseline Accuracy: {final_state.baseline_metrics.get('accuracy', 'N/A')}, "
+                    f"Macro F1: {final_state.baseline_metrics.get('f1_macro', 'N/A')}\n"
+                )
             if final_state.transformations_applied:
                 reply_text += f"- Transformations Applied: {', '.join(final_state.transformations_applied)}\n"
             if final_state.latest_metrics and final_state.latest_metrics != final_state.baseline_metrics:
-                reply_text += f"- Post-Transformation Accuracy: {final_state.latest_metrics.get('accuracy', 'N/A')}, Macro F1: {final_state.latest_metrics.get('f1_macro', 'N/A')}\n"
-            
+                reply_text += (
+                    f"- Post-Transformation Accuracy: {final_state.latest_metrics.get('accuracy', 'N/A')}, "
+                    f"Macro F1: {final_state.latest_metrics.get('f1_macro', 'N/A')}\n"
+                )
             reply_text += "A full evaluation report has been compiled and saved."
 
-            # Save assistant message
             with db._get_connection() as conn:
                 conn.execute(
                     "INSERT INTO chat_messages (id, project_id, sender, message, created_at) VALUES (?, ?, ?, ?, ?)",
@@ -106,12 +132,20 @@ def handle_project_chat(project_id: str, payload: ChatRequest):
                 robustness_metrics=final_state.robustness_metrics
             )
 
-    # Conversational Q&A / Memory Retrieval
-    memory_results = project_memory.query_history(project_id, user_msg, n_results=3)
-    memory_context = "\n".join([m["content"] for m in memory_results]) if memory_results else "No previous experiments recorded."
+    # --- CONTEXTUAL or COMPARISON: answer from report/memory context ---
+    memory_results = project_memory.query_history(project_id, user_msg, n_results=5)
+    memory_context = (
+        "\n".join([m["content"] for m in memory_results])
+        if memory_results
+        else "No previous experiments recorded."
+    )
 
-    prompt = CHAT_RESPONSE_PROMPT.format(context=memory_context, question=user_msg)
-    llm_reply = ollama_client.generate(prompt=prompt)
+    if intent == "comparison":
+        prompt = CHAT_COMPARISON_PROMPT.format(context=memory_context, question=user_msg)
+    else:
+        prompt = CHAT_RESPONSE_PROMPT.format(context=memory_context, question=user_msg)
+
+    llm_reply = qwen_client.generate(prompt=prompt, temperature=0.3, max_new_tokens=512)
     if not llm_reply or len(llm_reply.strip()) == 0:
         llm_reply = f"Based on project memory:\n{memory_context}"
 
