@@ -1,0 +1,489 @@
+## 1. Updated Platform System & Execution Workflow
+
+The Agentic ML Evaluation Platform operates on a **Hybrid Agentic Control Architecture** where deterministic Python engines maintain state authority and execute numerical operations, while the LLM (accessed via the Groq API) provides intent classification, plan generation, and analytical synthesis.
+
+```
+                     +-----------------------------------+
+                     |       USER / WEB DASHBOARD        |
+                     |  (Upload, Workspaces, Prompts)    |
+                     +-----------------+-----------------+
+                                       |
+                                       v
+                     +-----------------------------------+
+                     |          FASTAPI BACKEND          |
+                     |    (REST Router & Session State)  |
+                     +-----------------+-----------------+
+                                       |
+                                       v
+                +---------------------------------------------+
+                |           REQUEST ROUTING LAYER             |
+                |                                             |
+                |  - Intent Classification (Groq)             |
+                |  - Scope Detection (Deterministic/Narrow)   |
+                |  - Hyperparameter Regex Extraction          |
+                |  - Compound Security Detection (deterministic)|
+                +----------------------+----------------------+
+                                       |
+             +-------------------------+-------------------------+
+             |                         |                         |
+             v                         v                         v
+   +-------------------+    +--------------------+    +--------------------+
+   | INFORMATION FLOWS |    | TARGETED / FULL    |    | CONTEXTUAL /       |
+   |                   |    | WORKFLOWS          |    | COMPARISON         |
+   | - Inspect Model   |    |                    |    |                    |
+   | - Inspect Dataset |    | - Evasion Attacks  |    | - Historical Q&A   |
+   | - Validate        |    | - ART Defenses     |    | - Version Shifts   |
+   | - Baseline Metrics|    | - Data Transforms  |    | - Security Advice  |
+   |                   |    | - Multi-Step Flows |    |                    |
+   |                   |    |   (sweep / loop)   |    |                    |
+   +---------+---------+    +----------+---------+    +----------+---------+
+             |                         |                         |
+             +-------------------------+-------------------------+
+                                       |
+                                       v
+                +---------------------------------------------+
+                |            CORE AGENTIC ENGINE              |
+                |                                             |
+                |  - AgentState (Authoritative State Machine) |
+                |  - AgentPlanner (LLM Brain + Fallbacks)     |
+                |  - AgentRunner (Orchestrator Driver)        |
+                |  - ToolRegistry (Execution Wrappers)        |
+                +----------------------+----------------------+
+                                       |
+   +-----------------------------------+-----------------------------------+
+   |                                   |                                   |
+   v                                   v                                   v
++------------------+        +---------------------+      +---------------------+
+|   MODEL TOOLS    |        |    DATASET TOOLS    |      |  EVAL & SECURITY    |
+| - Inspect        |        | - Versioning        |      | - Performance       |
+| - Validate       |        | - Data Quality      |      | - Noise Benchmark   |
+| - Predict        |        | - Cleaning / SMOTE  |      | - ART Attacks       |
+| - Torch Adapter  |        | - Scaling / Outlier |      | - ART Defenses      |
+| - Hardened Model |        | - Noise Injection   |      | - Harden Model      |
++--------+---------+        +----------+----------+      +----------+----------+
+         |                             |                            |
+         +-----------------------------+----------------------------+
+                                       |
+                                       v
+                    +-------------------------------------+
+                    |          PERSISTENCE LAYER          |
+                    |                                     |
+                    | - SQLite (Authoritative relational) |
+                    | - ChromaDB (Semantic memory)        |
+                    | - File System (Immutable v001..vN)  |
+                    | - Markdown Reports                  |
+                    +-------------------------------------+
+```
+
+### Execution Rules & Constraints
+
+1. **State Isolation:** Narrow requests (e.g., `Inspect my model`) execute only required tools and terminate immediately without triggering full evaluation.
+2. **Raw Dataset Authority:** Evasion attacks (`fgsm`, `pgd`, `cw`, `boundary_attack`, `hopskipjump`, `zoo`) and ART defenses evaluate against the raw baseline dataset (`v001`) to assess true model vulnerability rather than pre-transformed representations.
+3. **Subsampled Fast Execution:** Adversarial attacks and defenses run on a stratified, seeded sample ($n = 30$) across original target classes, ensuring evaluation completes quickly while maintaining statistical balance. Note the granularity: each percentage moves in ~3.3-point steps, so differences under ~10 points are noise at this sample size.
+4. **Float32 Tensor Enforcers:** Features transformed by ART preprocessors are explicitly cast to `np.float32` before prediction passes, preventing PyTorch `Double` vs `Float` matrix multiplication type mismatches (`mat1 and mat2`).
+5. **Universal Hyperparameter Injection:** User prompts containing explicit hyperparameter overrides (e.g., `eps=0.25`, `max_iter=15`, `sigma=1.2`, `bit_depth=4`) are extracted via regex and injected into `AgentState` before tool execution.
+6. **Deterministic Security Planning:** Compound security operations (sweep, hardening loop, harden model) are pinned to deterministic planning. They are never delegated to free-form LLM planning because they have strict legal ordering and metric dependencies.
+
+---
+
+## 2. Interactive Execution Graph & Information Flow
+
+The sequence diagram below illustrates the exact cycle executed for every user prompt.
+
+```
+[User]         [Router]       [AgentRunner]      [AgentPlanner]      [ToolRegistry]     [Groq LLM]      [SQLite/Chroma]
+  |                |                |                  |                   |                 |                 |
+  |-- User Prompt ->|                |                  |                   |                 |                 |
+  |  (e.g., "pgd   |                |                  |                   |                 |                 |
+  |   eps=0.25")   |                |                  |                   |                 |                 |
+  |                |-- Parse Intent ->                  |                   |                 |                 |
+  |                |-- Extract Regex Params (eps=0.25) ->                  |                 |                 |
+  |                |                |                  |                   |                 |                 |
+  |                |-- Init State ->|                  |                   |                 |                 |
+  |                |                |-- Decide Step -->|                   |                 |                 |
+  |                |                |                  |-- Query Next ---->|                 |                 |
+  |                |                |                  |   Action          |-- Prompt JSON ->|                 |
+  |                |                |                  |<-- Action JSON ---|                 |                 |
+  |                |                |<-- Return Step --|                   |                 |                 |
+  |                |                |    Decision      |                   |                 |                 |
+  |                |                |                  |                   |                 |                 |
+  |                |                |-- Execute Tool --------------------->|                 |                 |
+  |                |                |   (pgd, eps=0.25)                    |                 |                 |
+  |                |                |                                      |-- Run Python -> |                 |
+  |                |                |                                      |   (Subsample 30)|                 |
+  |                |                |                                      |   (Cast Float32)|                 |
+  |                |                |<-- Return Results -------------------|                 |                 |
+  |                |                |    (Clean: 1.0, Adv: 0.7333)          |                 |                 |
+  |                |                |                                                        |                 |
+  |                |                |-- Update AgentState ----------------------------------->|                 |
+  |                |                |-- Finalization Gate: keep going if save_experiment pending|
+  |                |                |-- Save Experiment ------------------------------------------------------>|
+  |                |                |                                                                          |
+  |                |                |-- Trigger Report Synth (if required) ----------------->|                 |
+  |                |                |<-- Final Markdown Report ------------------------------|                 |
+  |                |                |                                                                          |
+  |<-- Final Response --------------|                                                                          |
+```
+
+### Completion / Finalization Gate
+
+A workflow that still needs to persist or report must **not** be finalized just because its core tool succeeded. `AgentRunner._can_finalize_after_successful_action` keeps these actions running until `save_experiment` has actually run:
+
+`attack_defended_model`, `defended_attack`, `harden_model`, `harden`, `hardening_loop`, `harden_defense_loop`.
+
+Omitting a workflow from this allowlist causes its results to be silently dropped (the run ends before persistence), which is the single most likely reason a graph appears empty after a successful run.
+
+---
+
+## 3. Mini User Manual
+
+### System Inputs & Command Patterns
+
+| Operation Category | Standard User Input Command | Key Optional Hyperparameters |
+| --- | --- | --- |
+| **Model & Dataset Inspection** | `Inspect my model and dataset` | `target_column` |
+| **Baseline Performance** | `Calculate baseline metrics` | `task_type` (`classification`/`regression`) |
+| **Data Quality Audit** | `Audit dataset quality` | `target_column` |
+| **Noise Robustness** | `Test Gaussian noise robustness` | `noise_level` (default: `0.10`) |
+| **Gradient Evasion Attack** | `Run FGSM attack with eps=0.2` | `eps`, `batch_size`, `targeted` |
+| **Iterative Evasion Attack** | `Execute PGD with eps=0.25 max_iter=15` | `eps`, `eps_step`, `max_iter`, `batch_size` |
+| **Optimization Evasion Attack** | `Run C&W attack on my PyTorch model` | `max_iter`, `batch_size` |
+| **Black-box Boundary Attack** | `Run boundary_attack on my model` | `max_iter`, `init_size`, `batch_size` |
+| **Black-box HopSkipJump** | `Execute hopskipjump attack` | `max_iter`, `max_eval`, `batch_size` |
+| **Black-box ZOO Attack** | `Run ZOO attack on tabular data` | `max_iter`, `nb_parallel` |
+| **Preprocessor Defense** | `Apply gaussian_augmentation with sigma=0.8` | `sigma` |
+| **Feature Squeezing Defense** | `Apply feature_squeezing with bit_depth=4` | `bit_depth` |
+| **Postprocessor Defense** | `Apply reverse_sigmoid with beta=1.0` | `beta`, `gamma` |
+| **Confidence Masking** | `Apply high_confidence_masking cutoff=0.3` | `cutoff` |
+| **Attack + Harden (single)** | `Attack my model with pgd then harden it` | `eps`, `max_iter`, retraining method |
+| **Comparative Sweep** | `compare fgsm, pgd and cw with feature_squeezing and generate a report` | `eps`, `max_iter`, `bit_depth` |
+| **Hardening Loop** | `harden my model over 5 rounds against fgsm, pgd, hopskipjump and zoo with feature_squeezing using pgd` | rounds, attacks, method |
+| **Data Cleaning** | `Handle missing values using median` | `strategy` (`median`/`mean`/`mode`) |
+| **Class Balancing** | `Balance data using SMOTE` | `method` (`smote`/`oversample`/`undersample`) |
+| **Outlier Handling** | `Handle outliers using clip` | `method` (`clip`/`remove`) |
+| **Feature Scaling** | `Scale dataset using standard scaler` | `method` (`standard`/`minmax`) |
+| **Report Generation** | `Generate complete evaluation report` | `title` |
+
+---
+
+### Framework Support Matrix
+
+The attack you **measure** and the method you **retrain with** are independent.
+
+```
+ Framework | Attacks                                        | Retraining methods
+-----------+------------------------------------------------+-------------------
+ pytorch   | boundary_attack, hopskipjump, zoo, fgsm, pgd,  | fgsm, pgd
+           | cw                                             |
+ sklearn   | boundary_attack, hopskipjump, zoo              | boundary_attack,
+           |                                                | hopskipjump
+ onnx      | boundary_attack, hopskipjump, zoo              | boundary_attack,
+           |                                                | hopskipjump
+```
+
+`fgsm`, `pgd` and `cw` exist only on PyTorch. A request naming an unsupported attack for the loaded framework is refused before execution starts.
+
+---
+
+### Standard Outputs & Return Schemas
+
+#### 1. Evasion Attack Tool Output (`fgsm`, `pgd`, `cw`, `boundary_attack`, `hopskipjump`, `zoo`)
+
+```json
+{
+  "status": "success",
+  "result": {
+    "attack_type": "pgd",
+    "framework": "pytorch",
+    "clean_accuracy": 1.0,
+    "adversarial_accuracy": 0.7333,
+    "accuracy_drop": 0.2667,
+    "drop_percentage": 26.67,
+    "sample_size_used": 30,
+    "dataset_info": {
+      "total_rows": 569,
+      "total_features": 30,
+      "target_column": "diagnosis",
+      "num_classes": 2
+    },
+    "model_info": {
+      "model_class": "RecursiveScriptModule",
+      "framework": "pytorch",
+      "layers": ["Linear(30->16)", "Linear(16->2)"],
+      "total_params": 530
+    },
+    "eps": 0.25,
+    "eps_step": 0.02,
+    "max_iter": 15,
+    "batch_size": 64
+  }
+}
+```
+
+#### 2. Defense Tool Output (`feature_squeezing`, `gaussian_augmentation`, etc.)
+
+```json
+{
+  "status": "success",
+  "result": {
+    "defense_type": "feature_squeezing",
+    "framework": "pytorch",
+    "clean_accuracy": 1.0,
+    "defended_accuracy": 0.9667,
+    "accuracy_change": -0.0333,
+    "sample_size_used": 30,
+    "bit_depth": 4,
+    "dataset_info": {
+      "total_rows": 569,
+      "total_features": 30,
+      "target_column": "diagnosis"
+    }
+  }
+}
+```
+
+#### 3. Attack + Harden Output (`attack_defended_model`, `harden_model`)
+
+```json
+{
+  "status": "success",
+  "result": {
+    "operation": "harden_model",
+    "attack_type": "pgd",
+    "method": "pgd",
+    "pre_hardening_accuracy": 0.7333,
+    "post_hardening_accuracy": 0.9667,
+    "model_id": "model_hardened_<timestamp>",
+    "model_path": "storage/models/.../model_hardened_<timestamp>.pt",
+    "sample_size_used": 30
+  }
+}
+```
+
+#### 4. Comparative Sweep Persistence (`attack_defense_sequence_N`)
+
+```json
+{
+  "operation": "attack_defense_sequence_3",
+  "comparison": {
+    "series": {
+      "kind": "sweep",
+      "count": 3,
+      "items": [
+        { "step": 1, "attack_type": "fgsm", "defense_type": "feature_squeezing",
+          "clean_accuracy": 1.0, "adversarial_accuracy": 1.0 },
+        { "step": 2, "attack_type": "pgd", "defense_type": "feature_squeezing",
+          "clean_accuracy": 1.0, "adversarial_accuracy": 1.0 },
+        { "step": 3, "attack_type": "cw", "defense_type": "feature_squeezing",
+          "clean_accuracy": 1.0, "adversarial_accuracy": 0.0 }
+      ]
+    }
+  }
+}
+```
+
+#### 5. Hardening Loop Persistence (`hardening_loop_N_rounds`)
+
+```json
+{
+  "operation": "hardening_loop_5_rounds",
+  "comparison": {
+    "series": {
+      "kind": "loop",
+      "count": 5,
+      "items": [
+        { "round": 1, "attack_type": "fgsm", "adversarial_accuracy": 1.0,
+          "model_id": "model_..._r1" },
+        { "round": 2, "attack_type": "pgd", "adversarial_accuracy": 1.0,
+          "model_id": "model_..._r2" },
+        { "round": 3, "attack_type": "hopskipjump", "adversarial_accuracy": 0.3333,
+          "model_id": "model_..._r3" },
+        { "round": 4, "attack_type": "zoo", "adversarial_accuracy": 1.0,
+          "model_id": "model_..._r4" },
+        { "round": 5, "attack_type": "fgsm", "adversarial_accuracy": 1.0,
+          "model_id": "model_hardened_20261001_051340_867898_58f0d251" }
+      ]
+    }
+  }
+}
+```
+
+#### 6. Dataset Transformation Output (`handle_missing_values`, `balance_data`, `scale_data`)
+
+```json
+{
+  "status": "success",
+  "result": {
+    "dataset_id": "dataset_001",
+    "version": "v002",
+    "parent_version": "v001",
+    "operation": "scale_data",
+    "file_path": "/storage/datasets/dataset_001/v002/data.csv",
+    "row_count": 569,
+    "column_count": 30,
+    "parameters": {
+      "method": "standard",
+      "features_scaled": 30
+    }
+  }
+}
+```
+
+---
+
+## 4. Autonomous Agent Architecture & Capability Report
+
+### Agent Architecture Overview
+
+The system uses **1 Centralized Autonomous Agent** implemented across two Python classes bound by an `AgentState` context:
+
+1. **`AgentPlanner` (Brain):** Receives state summaries and prompt directives, invokes the Groq-hosted LLM for next-step planning, or runs deterministic fallback logic when state transitions are strictly governed (security workflows). Also builds multi-step series for persistence.
+2. **`AgentRunner` (Executor/Driver):** Manages the loop iteration, executes Python tools via `ToolRegistry`, enforces the finalization gate, handles failures, updates `AgentState`, persists records, and calls report generators.
+
+```
+                     +-----------------------------------+
+                     |            AGENT STATE            |
+                     | - Execution Flags                 |
+                     | - Evaluated Versions              |
+                     | - Metrics & Observations          |
+                     | - Compatibility Result (True/False)|
+                     +-----------------+-----------------+
+                                       |
+                     +-----------------+-----------------+
+                     |                                   |
+                     v                                   v
+          +---------------------+             +---------------------+
+          |    AGENT PLANNER    |             |    AGENT RUNNER     |
+          |  (Decision Engine)  |             |  (Driver Loop)      |
+          | - Prompt Analysis   |             | - Tool Execution    |
+          | - Action Validation |             | - Finalization Gate |
+          | - Fallback Routing  |             | - Error Catching    |
+          | - Series Building   |             | - State Mutation    |
+          +---------------------+             +---------------------+
+```
+
+---
+
+### Task & Tool Permission Matrix
+
+The single agent is authorized to execute 33 deterministic Python tools categorized into six core functional domains plus multi-step security operations:
+
+```
++-----------------------------------------------------------------------------------+
+|                            AUTHORIZED AGENT TOOL SUITE                            |
++---------------------+---------------------+------------------+--------------------+
+| Inspection & Bounds | Performance & Data  | Evasion Attacks  | Pre/Post Defenses  |
++---------------------+---------------------+------------------+--------------------+
+| inspect_model       | evaluate_performance| fgsm             | gaussian_aug       |
+| inspect_dataset     | evaluate_data_quality| pgd             | spatial_smoothing  |
+| validate_model_dataset| evaluate_robustness| cw              | feature_squeezing  |
+|                     |                     | boundary_attack  | clip_values        |
+|                     |                     | hopskipjump      | reverse_sigmoid    |
+|                     |                     | zoo              | class_labels       |
+|                     |                     |                  | high_conf_masking  |
++---------------------+---------------------+------------------+--------------------+
+| Multi-Step Security | Transformations     | Memory & Persist | Reporting          |
++---------------------+---------------------+------------------+--------------------+
+| attack_defended_model| handle_missing     | compare_results  | generate_report    |
+| harden_model        | balance_data        | search_history   |                    |
+| harden_defense_loop | handle_outliers     | save_experiment  |                    |
+|                     | scale_data          |                  |                    |
+|                     | add_gaussian_noise  |                  |                    |
+|                     | inject_missing_values|                 |                    |
+|                     | inject_label_noise  |                  |                    |
++---------------------+---------------------+------------------+--------------------+
+```
+
+1. **Model & Dataset Inspection Tools**
+* `inspect_model`: Extracts framework, architecture, input/output shapes, layer dimensions, parameter counts.
+* `inspect_dataset`: Profiles rows, columns, feature types, missingness, duplicates, target distribution.
+* `validate_model_dataset`: Checks feature dimension compatibility and class label alignments.
+
+2. **Evaluation & Quality Benchmarks**
+* `evaluate_performance`: Computes Accuracy, Precision Macro, Recall Macro, Macro F1, Minority F1, RMSE.
+* `evaluate_data_quality`: Audits missing ratios, class imbalance ratios, outlier counts, constant columns.
+* `evaluate_robustness`: Measures accuracy degradation under Gaussian feature noise perturbations.
+
+3. **Adversarial Security Tools (ART Integration)**
+* `fgsm`, `pgd`, `cw`: Gradient-based evasion attacks for PyTorch neural models.
+* `boundary_attack`, `hopskipjump`, `zoo`: Black-box/decision-based evasion attacks for Tree/Ensemble and non-differentiable models.
+* `gaussian_augmentation`, `spatial_smoothing`, `feature_squeezing`, `clip_values`: Preprocessor input defenses.
+* `reverse_sigmoid`, `class_labels`, `high_confidence_masking`: Postprocessor logit/probability defenses.
+
+4. **Multi-Step Security Operations**
+* `attack_defended_model`: Independent attack+defense measurement against one model (used by the comparative sweep).
+* `harden_model`: Single-round adversarial retraining (attack then retrain).
+* `harden_defense_loop`: Cumulative hardening loop; each round attacks the *current* model, retrains it, and feeds the retrained model into the next round. Only the final hardened model is registered as an asset.
+
+5. **Data Engineering & Transformation Tools**
+* `handle_missing_values`, `balance_data` (SMOTE/Sampling), `handle_outliers` (Clipping/Removal), `scale_data` (Standard/MinMax).
+* `add_gaussian_noise`, `inject_missing_values`, `inject_label_noise`: Data stress-testing corruptions.
+
+6. **Persistence, Memory & Synthesis Tools**
+* `save_experiment`: Writes experiment parameters and comparisons (including multi-step `series`) to SQLite and ChromaDB vector store.
+* `compare_results`: Calculates programmatic before-vs-after delta metrics across dataset versions.
+* `search_project_history`: Performs semantic vector searches over past project runs.
+* `generate_report`: Compiles structured evaluation metrics into a Markdown diagnostic report.
+
+---
+
+## 5. Multi-Step Security Workflows
+
+### 5.1 Comparative Attack / Defense Sweep (up to 5 combinations)
+
+Prompt pattern:
+`compare fgsm, pgd and cw with feature_squeezing and generate a report`
+
+* Each combination is an **independent** measurement against the same unmodified model. The defense is an input preprocessor and is **not written back**, so combinations do not stack.
+* Persists operation `attack_defense_sequence_N`.
+* Persists `comparison.series` with `kind: "sweep"` and one item per combination.
+* Report section 8.3 covers the sweep.
+* UI renders grouped bars per combination from the persisted series.
+
+### 5.2 Cumulative Adversarial Hardening Loop (up to 5 rounds)
+
+Prompt pattern:
+`harden my model over 5 rounds against fgsm, pgd, hopskipjump and zoo with feature_squeezing using pgd`
+
+* Each round attacks the **current** model, adversarially retrains it, and feeds the retrained model into the next round. Robustness genuinely accumulates.
+* Intermediate rounds retrain with `persist=False`; only the final hardened model is registered as an asset.
+* Persists operation `hardening_loop_N_rounds`.
+* Persists `comparison.series` with `kind: "loop"` and one item per round. Each item carries its own `model_id` so a reader can tell which artefact produced which number.
+* Report section 9 covers the loop.
+* **Mixed-threat curricula** are supported: a named list of attacks cycles across the rounds (e.g. `fgsm -> pgd -> hopskipjump -> zoo -> fgsm` for 5 rounds). A first-to-final delta is only reported when every round measured the same attack; otherwise it is reported per attack.
+
+`N` is user-supplied, defaults to 2, hard cap 5, and is an upper bound only. Combinations/rounds are never duplicated or invented to reach `N`.
+
+---
+
+## 6. Charting & Persistence
+
+* Experiments are stored in SQLite; `comparison` blobs are JSON and may carry a `series` object:
+
+```json
+{ "kind": "sweep" | "loop", "count": <int>, "items": [ ... ] }
+```
+
+* Series values are copied from evaluator output, **never recomputed**, so a chart cannot disagree with the report.
+* Absent metrics are omitted, never rendered as zero.
+* Chart views:
+  * **Noise / Attacks / Defenses** — existing 3-series comparison bar chart.
+  * **Sweep** — grouped bars, one group per combination.
+  * **Loop** — per-round points. A line is drawn only when every round measured the same attack. In a mixed-threat run the rounds are rendered as **unconnected points** (all values still shown) so the chart does not imply a trend the numbers do not support. Tick labels name the attack for each round.
+* All views share one canvas region. A small canvas-ownership registry (`releaseChartCanvas` / `claimChartCanvas`) releases the previous chart before a new view claims it. `claimChartCanvas` takes a **thunk** (a factory function), not a chart instance, because JS evaluates arguments before the call — passing `new Chart(...)` directly would construct the chart before the release and throw `Canvas is already in use`.
+* **No retroactive repair:** historical experiments without a series render as a single point until the workflow is re-run.
+
+---
+
+## 7. Safety Guardrails & Operational Constraints
+
+* **Strict Action Legality Gate (`AgentPlanner._is_action_legal`):** Prevents executing illegal tool sequences (e.g., attempting `balance_data` before dataset compatibility validation).
+* **Finalization Gate:** A workflow needing persistence/reporting is not finalized until `save_experiment` has run (see Section 2). This is the single place where a missing allowlist entry silently drops results.
+* **Fail-Fast Refusals:** Incompatible model/dataset pairs and unsupported attack/method combinations are refused up front with a user-facing reason, rather than planned and failed after expensive work.
+* **Compatibility Gate:** Security actions require a **passed** compatibility check (`compatibility_result is True`), not merely one that ran.
+* **Infinite Loop Protection:** Tracks consecutive tool failures (`limit = 3`). If a tool fails repeatedly, execution terminates with status `"failed"` and a real cause.
+* **Dataset Immutability:** Transformations never overwrite existing files. New version directories (`v001`, `v002`, `v003`) are created with transformation metadata logs.
+* **No Metric Fabrication:** Numerical metrics are generated exclusively by deterministic Python functions. The LLM is restricted to formatting, reasoning, and context analysis.
+* **Tensor Serialization Safety:** Large numpy array tensors (`x_adv`, `x_aug`) are removed from state memory before logging to prevent memory bloat, returning JSON-safe `.tolist()` summaries for inspection.
+* **Bounded Filenames:** Hardened model file names are length-bounded (existing `hardened_<ts>_` markers are stripped and one is re-applied) so long hardening chains cannot exceed filesystem path limits.
+* **Environment / Test Isolation:** `tests/conftest.py` sets `STORAGE_DIR` and `CHROMA_PERSIST_DIR` before any `app` import so tests never touch real storage.

@@ -1,0 +1,56 @@
+# ==============================================================================
+# AGENTIC ML PLATFORM - PRESENTATION PROMPT CHEAT SHEET
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. BASELINE INSPECTION & EVALUATION
+# ------------------------------------------------------------------------------
+Evaluate my model on the dataset and give me baseline performance.
+Inspect the dataset and tell me if there are any data quality issues.
+Check if my model is compatible with the uploaded dataset.
+What is the baseline accuracy and macro F1 score of my model?
+
+# ------------------------------------------------------------------------------
+# 2. NOISE INJECTION & ROBUSTNESS TESTING (DISTURBANCE)
+# ------------------------------------------------------------------------------
+Add 10% Gaussian noise to the dataset and test if my model is robust.
+Corrupt the feature values with 20% noise and re-evaluate the model to see the accuracy drop.
+Inject missing values into the dataset and show me what happens to performance.
+Inject 10% label noise into the dataset and measure the degradation.
+Test the robustness of my model against noisy data.
+
+# ------------------------------------------------------------------------------
+# 3. DATA CLEANING & MISSING VALUE IMPUTATION
+# ------------------------------------------------------------------------------
+Handle missing values in the dataset using median imputation and re-evaluate.
+Clean the dataset by removing duplicate rows and imputing missing features.
+Impute missing values using mean strategy and compare results with baseline.
+
+# ------------------------------------------------------------------------------
+# 4. CLASS BALANCING & SMOTE
+# ------------------------------------------------------------------------------
+Detect class imbalance and balance the dataset using SMOTE.
+The dataset has severe class imbalance, please balance the classes and check minority F1 score.
+Apply oversampling to balance the dataset and compare before and after metrics.
+
+# ------------------------------------------------------------------------------
+# 5. OUTLIER HANDLING & SCALING
+# ------------------------------------------------------------------------------
+Detect outliers in the numerical features and clip them using IQR method.
+Scale the numerical features using standard normalization and re-evaluate.
+Remove extreme outliers from the dataset and check if model accuracy improves.
+
+# ------------------------------------------------------------------------------
+# 6. CHROMADB PROJECT MEMORY & RETRIEVAL (Q&A)
+# ------------------------------------------------------------------------------
+What transformations did we try so far?
+Did balancing the dataset with SMOTE improve the model?
+What happened to the model accuracy when we added noise?
+Which dataset version produced the highest F1 score?
+What were the baseline metrics before any transformation?
+
+# ------------------------------------------------------------------------------
+# 7. COMPLETE END-TO-END AUTONOMOUS GOAL (BEST FOR LIVE DEMO)
+# ------------------------------------------------------------------------------
+Evaluate my model and improve it if the dataset has problems.
+Run a full audit on my model and dataset, fix any detected issues, and generate a final evaluation report.

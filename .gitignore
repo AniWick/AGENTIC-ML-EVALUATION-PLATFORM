@@ -1,0 +1,23 @@
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+# Environment secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Runtime data, databases, models, uploads and reports
+storage/

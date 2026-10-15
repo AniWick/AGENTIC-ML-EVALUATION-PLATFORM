@@ -1,0 +1,345 @@
+================================================================================
+AGENTIC ML EVALUATION PLATFORM - SYSTEM & EXECUTION WORKFLOW
+Last Updated: 2026-10-15
+================================================================================
+
+This document is a plain-text walkthrough of the system architecture, data flow,
+agent decision cycle, and file responsibilities.
+
+The agent operates on a hybrid deterministic + agentic model. Python tools own
+execution and numerical correctness; the LLM (Qwen) provides intent
+classification, plan generation where allowed, and analytical synthesis. The agent
+maintains explicit state, detects problems autonomously, applies targeted
+transformations, and stops only when the goal is achieved.
+
+--------------------------------------------------------------------------------
+INDEX OF METRICS
+--------------------------------------------------------------------------------
+1) SMOTE        : Synthetic Minority Over-sampling Technique; balances imbalanced
+                  datasets by synthesising minority-class examples.
+2) Accuracy     : Proportion of all predictions that are correct.
+3) Precision    : Proportion of predicted-positive cases that are actually positive.
+4) Recall       : Proportion of actual-positive cases correctly identified.
+5) Minority F1  : F1-score of the minority class.
+6) Macro F1     : Unweighted mean of per-class F1 scores.
+
+================================================================================
+1. QUICK COMMAND REFERENCE
+================================================================================
+
+1. Start the Platform & Web Dashboard:
+   python -m app.main
+   (or) python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+2. Access in Browser:
+   http://localhost:8000/
+
+3. Run Automated Test Suite:
+   python -m pytest tests/ -q
+
+Server Architecture:
+   FastAPI App (Uvicorn)
+   - Host    : 0.0.0.0:8000   (REST API + Web Dashboard)
+   - Protocol: HTTP/1.1
+   - Routers : app/api/* (chat, projects, models, datasets, evaluations,
+               experiments, reports, presets)
+   - Static  : frontend/ served at root
+
+================================================================================
+2. EXECUTION MODES
+================================================================================
+
+A user request resolves to one of three intents:
+
+1) deterministic -> run an AgentRunner workflow with deterministic Python tools.
+2) contextual    -> retrieve memory and answer a question about prior runs.
+3) comparison    -> retrieve memory and compare prior runs.
+
+Compound security operations (sweep, hardening loop, harden_model) are pinned to
+deterministic planning and are never delegated to free-form LLM planning, because
+they have strict legal ordering and metric dependencies.
+
+================================================================================
+3. CORE AGENTIC ENGINE
+================================================================================
+
+AgentState   - authoritative state machine. Holds inspection/compatibility flags,
+               evaluated versions, metrics, observations, actions taken, and the
+               per-workflow result objects. Completion rules live here.
+AgentPlanner - decides the next action. Uses deterministic fallback plans for
+               security workflows; LLM decisions elsewhere. Builds multi-step
+               series for persistence.
+AgentRunner  - drives the loop: plan -> execute tool -> record observation ->
+               update state -> decide whether the workflow may finalize.
+ToolRegistry - named tool executors with parameter schemas.
+
+Important completion rule:
+   A workflow that still needs to persist or report must NOT be finalized just
+   because its core tool succeeded. The finalization allowlist in
+   AgentRunner._can_finalize_after_successful_action explicitly keeps
+   attack_defended_model, defended_attack, harden_model, harden,
+   hardening_loop, and harden_defense_loop running until save_experiment has run.
+   Omitting a workflow from that list causes its results to be silently dropped.
+
+================================================================================
+4. CODEBASE DIRECTORY & FILE MAPPING
+================================================================================
+
+app/
+├── api/
+│   ├── chat.py             -> intent routing, chat history, agent execution bridge
+│   ├── datasets.py         -> upload, selection, versioned transformations
+│   ├── models.py           -> upload/metadata/inspection bridge
+│   ├── presets.py          -> benchmark presets
+│   ├── projects.py         -> project lifecycle
+│   ├── evaluations.py      -> performance/robustness endpoints
+│   ├── experiments.py      -> experiment tracking/read APIs
+│   └── reports.py          -> report generation/read APIs
+│
+├── agent/
+│   ├── agent.py            -> AgentRunner (step loop, finalization gates,
+│   │                          observation sanitization)
+│   ├── planner.py          -> AgentPlanner (deterministic fallback plans,
+│   │                          build_series for multi-step charts)
+│   ├── state.py            -> AgentState (flags, results, completion rules)
+│   ├── tools.py            -> ToolRegistry and tool implementations
+│   └── security_aliases.py -> attack/defense/hardening alias extraction and
+│                              framework support validation
+│
+├── core/
+│   ├── config.py           -> environment settings
+│   ├── database.py         -> SQLite schema and authoritative persistence
+│   └── storage.py          -> storage paths and file management
+│
+├── datasets/
+│   ├── loader.py           -> loading, validation, versioning
+│   └── validator.py        -> schema/target checks
+│
+├── evaluation/
+│   ├── robustness.py       -> ART evasion/defense, multi-step sweep, hardening loop
+│   ├── metrics.py          -> performance metrics
+│   └── noise.py            -> Gaussian noise benchmarking
+│
+├── memory/
+│   └── chroma.py           -> ChromaDB vector memory (store/search)
+│
+├── models/
+│   ├── adapters.py         -> sklearn / ONNX / PyTorch adapters
+│   ├── loader.py           -> model loading and inspection
+│   └── trainer.py          -> adversarial retraining, hardened model export,
+│                              bounded hardened filenames
+│
+├── reports/
+│   └── generator.py        -> structured Markdown report generator
+│
+└── transformations/
+    └── pipeline.py         -> imputation, balancing, scaling, outliers, noise
+
+frontend/
+└── index.html              -> dashboard UI, chart rendering, enlarged modal
+
+storage/
+├── platform.db             -> authoritative SQLite database
+├── models/                 -> uploaded and hardened models
+├── datasets/               -> dataset versions v001..vN
+├── reports/                -> generated Markdown reports
+└── chroma/                 -> vector store
+
+================================================================================
+5. REQUEST ROUTING LAYER
+================================================================================
+
+- Intent classification decides deterministic vs contextual vs comparison.
+- Compound security requests are recognised deterministically from the prompt
+  (attack/defense names, round wording, hardening verbs) before any LLM call.
+- Explicit hyperparameters in the prompt (eps, max_iter, batch_size, sigma,
+  bit_depth, ...) are extracted by regex and injected into AgentState before the
+  tool runs.
+- Unsupported combinations are refused up front (see Guardrails) rather than
+  planned and failed at runtime.
+
+================================================================================
+6. FRAMEWORK SUPPORT MATRIX
+================================================================================
+
+The attack you MEASURE and the method you RETRAIN WITH are independent.
+
+  Framework | Attacks                                      | Retraining methods
+  ----------|----------------------------------------------|-------------------
+  pytorch   | boundary_attack, hopskipjump, zoo, fgsm,     | fgsm, pgd
+            | pgd, cw                                      |
+  sklearn   | boundary_attack, hopskipjump, zoo            | boundary_attack,
+            |                                              | hopskipjump
+  onnx      | boundary_attack, hopskipjump, zoo            | boundary_attack,
+            |                                              | hopskipjump
+
+fgsm, pgd and cw exist only on PyTorch. A request naming an unsupported attack for
+the loaded framework is refused before execution starts.
+
+================================================================================
+7. MULTI-STEP SECURITY WORKFLOWS
+================================================================================
+
+1) COMPARATIVE ATTACK / DEFENSE SWEEP  (up to 5 combinations)
+
+   Prompt pattern:
+     compare fgsm, pgd and cw with feature_squeezing and generate a report
+
+   Behaviour:
+   - Each combination is an INDEPENDENT measurement against the same unmodified
+     model. The defense is an input preprocessor and is not written back, so
+     combinations do not stack.
+   - Persists operation attack_defense_sequence_N.
+   - Persists comparison.series with kind "sweep" and one item per combination.
+   - Report section 8.3 covers the sweep.
+   - UI renders grouped bars per combination from the persisted series.
+
+2) CUMULATIVE ADVERSARIAL HARDENING LOOP  (up to 5 rounds)
+
+   Prompt pattern:
+     harden my model over 5 rounds against fgsm, pgd, hopskipjump and zoo
+     with feature_squeezing using pgd
+
+   Behaviour:
+   - Each round attacks the CURRENT model, adversarially retrains it, and feeds
+     the retrained model into the next round. Robustness genuinely accumulates.
+   - Intermediate rounds retrain with persist=False; only the final hardened model
+     is registered as an asset.
+   - Persists operation hardening_loop_N_rounds.
+   - Persists comparison.series with kind "loop" and one item per round. Each item
+     carries its own model_id so a reader can tell which artefact produced which
+     number.
+   - Report section 9 covers the loop.
+   - Mixed-threat curricula are supported: a named list of attacks cycles across
+     the rounds (e.g. fgsm -> pgd -> hopskipjump -> zoo -> fgsm for 5 rounds).
+     A first-to-final delta is only reported when every round measured the same
+     attack; otherwise it is reported per attack.
+
+   N is user-supplied, defaults to 2, hard cap 5, and is an upper bound only.
+   Combinations/rounds are never duplicated or invented to reach N.
+
+================================================================================
+8. CHARTING & PERSISTENCE
+================================================================================
+
+- Experiments are stored in SQLite; comparison blobs are JSON and may carry a
+  "series" object { kind: "sweep" | "loop", count, items: [...] }.
+- Series values are copied from evaluator output, never recomputed, so a chart
+  cannot disagree with the report.
+- Absent metrics are omitted, never rendered as zero.
+- Chart views:
+    Noise / Attacks / Defenses : existing 3-series comparison bar chart.
+    Sweep                      : grouped bars, one group per combination.
+    Loop                       : per-round points. A line is drawn only when every
+                                 round measured the same attack. In a mixed-threat
+                                 run the rounds are rendered as unconnected points
+                                 (all values still shown) so the chart does not
+                                 imply a trend the numbers do not support. Tick
+                                 labels name the attack for each round.
+- All views share one canvas region. A small canvas-ownership registry releases the
+  previous chart before a new view claims it; constructing a chart inside an
+  argument position would run before the release and must be avoided (pass a thunk
+  to claimChartCanvas).
+- No retroactive repair: historical experiments without a series render as a single
+  point until the workflow is re-run.
+
+================================================================================
+9. SAFETY GUARDRAILS & OPERATIONAL CONSTRAINTS
+================================================================================
+
+- Strict action legality: the planner refuses illegal tool sequences (e.g. a data
+  transformation before compatibility validation).
+- Finalization gate: a workflow needing persistence/reporting is not finalised
+  until save_experiment has actually run (see section 3). This is the single place
+  where a missing entry silently drops results.
+- Fail-fast refusals: incompatible model/dataset pairs and unsupported
+  attack/method combinations are refused up front with a user-facing reason,
+  rather than planned and failed after expensive work.
+- Compatibility gate: security actions require a PASSED compatibility check
+  (compatibility_result is True), not merely one that ran.
+- Infinite-loop protection: consecutive tool failures are capped; execution
+  terminates with status "failed" and a real cause.
+- Dataset immutability: transformations never overwrite existing files; new version
+  directories are created with transformation metadata.
+- No metric fabrication: all numerical metrics are produced by deterministic Python.
+  The LLM is restricted to formatting, reasoning and context analysis.
+- Raw baseline authority: adversarial attacks and defenses evaluate against the raw
+  baseline dataset (v001) to assess true model vulnerability rather than a
+  pre-transformed representation.
+- Stratified seeded subsampling (n = 30) keeps adversarial runs fast and
+  reproducible. Note the granularity: each percentage moves in ~3.3-point steps, so
+  differences under ~10 points are noise on this sample size.
+- Float32 enforcement: features passed through ART preprocessors are cast to
+  np.float32 before prediction to avoid PyTorch Double/Float matrix type errors.
+- Tensor serialization safety: bulky arrays (x_adv, x_aug) are stripped from
+  persisted observations.
+- Bounded filenames: hardened model file names are length-bounded (existing
+  hardened_<ts>_ markers are stripped and one is re-applied) so long hardening
+  chains cannot exceed filesystem path limits.
+
+================================================================================
+10. STANDARD OUTPUT SHAPES (abridged)
+================================================================================
+
+Evasion attack (fgsm, pgd, cw, boundary_attack, hopskipjump, zoo):
+{
+  "status": "success",
+  "result": {
+    "attack_type": "pgd",
+    "clean_accuracy": 1.0,
+    "adversarial_accuracy": 0.7333,
+    "adversarial_precision": ..., "adversarial_recall": ..., "adversarial_f1": ...,
+    "drop_percentage": ...,
+    "sample_size_used": 30,
+    "dataset_info": { "total_rows": ..., "total_features": ..., "target_column": ... }
+  }
+}
+
+Defense / preprocessor (feature_squeezing, gaussian_augmentation, clip_values, ...):
+{
+  "status": "success",
+  "result": {
+    "defense_type": "feature_squeezing",
+    "defended_accuracy": 0.9667,
+    "accuracy_change": -0.0333,
+    "sample_size_used": 30,
+    "bit_depth": 4,
+    "dataset_info": { ... }
+  }
+}
+
+Dataset transformation (handle_missing_values, balance_data, scale_data, ...):
+{
+  "status": "success",
+  "result": {
+    "dataset_id": "dataset_001",
+    "version": "v002",
+    "parent_version": "v001",
+    "operation": "scale_data",
+    "file_path": ".../v002/data.csv",
+    "row_count": 569,
+    "column_count": 30,
+    "parameters": { "method": "standard", "features_scaled": 30 }
+  }
+}
+
+================================================================================
+11. NOTES
+================================================================================
+
+- LLM: accessed through the Groq API (OpenAI-compatible Chat Completions) via
+  app/llm/qwen_client.py. The model is selected by GROQ_MODEL (default
+  "openai/gpt-oss-120b"). Reasoning tags are stripped before use, and
+  degenerate (repetitive) output is discarded. The LLM is never used to compute
+  metrics; numerical results come only from deterministic Python.
+- If GROQ_API_KEY is unset, the client returns empty strings and the platform
+  falls back to deterministic/heuristic routing and plan selection.
+- Database: SQLite is authoritative (projects, models, datasets, dataset_versions,
+  evaluations, experiments, chat_messages, reports). ChromaDB is semantic memory.
+- Timestamps in the DB may read behind the OS clock; filter by id rather than by
+  timestamp when correlating runs.
+- Tests: 57 passed, 2 known pre-existing failures unrelated to the current
+  architecture (an ART refusal on tabular Spatial Smoothing, and a report test that
+  patches a removed import).
+- Test isolation: tests/conftest.py sets STORAGE_DIR and CHROMA_PERSIST_DIR before
+  any app import so tests never touch the real storage.

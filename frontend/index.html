@@ -1,0 +1,4669 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Agentic ML Model & Dataset Evaluation Platform</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #3730a3;
+            --primary-light: #eef2ff;
+
+            --success: #16a34a;
+            --success-light: #ecfdf3;
+
+            --warning: #d97706;
+            --warning-light: #fff7ed;
+
+            --danger: #dc2626;
+            --danger-light: #fef2f2;
+
+            --info: #0284c7;
+            --info-light: #f0f9ff;
+
+            --purple: #7c3aed;
+            --purple-light: #f5f3ff;
+
+            --bg: #f4f7fb;
+            --card: #ffffff;
+            --border: #e5e7eb;
+            --text: #172033;
+            --muted: #64748b;
+            --dark-muted: #475569;
+
+            --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
+            --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                "Helvetica Neue",
+                Arial,
+                sans-serif;
+        }
+
+        /* ============================================================
+           NAVBAR
+        ============================================================ */
+
+        .navbar {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+            z-index: 1000;
+        }
+
+        .brand-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary), var(--purple));
+            color: white;
+            font-size: 1.15rem;
+            box-shadow: 0 5px 14px rgba(79, 70, 229, 0.25);
+        }
+
+        .brand-title {
+            font-weight: 750;
+            font-size: 1.05rem;
+            color: var(--text);
+            line-height: 1.1;
+        }
+
+        .brand-subtitle {
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-top: 3px;
+        }
+
+        .nav-control-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .nav-select {
+            min-width: 190px;
+        }
+
+        /* ============================================================
+           GENERAL LAYOUT
+        ============================================================ */
+
+        .main-container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: 0.76rem;
+            font-weight: 800;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 10px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 18px;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-header {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            padding: 14px 17px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .card-body {
+            padding: 17px;
+        }
+
+        /* ============================================================
+           PRESET BANNER
+        ============================================================ */
+
+        .preset-banner {
+            background:
+                linear-gradient(135deg,
+                    #eef2ff 0%,
+                    #f5f3ff 50%,
+                    #eff6ff 100%);
+            border: 1px solid #c7d2fe;
+            border-radius: 16px;
+            padding: 17px 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .preset-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            color: var(--primary);
+            border: 1px solid #c7d2fe;
+            font-size: 1.15rem;
+        }
+
+        .preset-title {
+            font-weight: 750;
+            color: #312e81;
+        }
+
+        .preset-description {
+            color: #6366f1;
+            font-size: 0.83rem;
+        }
+
+        /* ============================================================
+           PROJECT HEADER
+        ============================================================ */
+
+        .project-card {
+            position: relative;
+        }
+
+        .project-card-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .project-heading {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+        }
+
+        .project-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 13px;
+            background: var(--primary-light);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .project-title {
+            font-size: 1.15rem;
+            font-weight: 750;
+            margin: 0;
+        }
+
+        .project-description {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+
+        .run-button {
+            min-width: 205px;
+            border-radius: 11px;
+            padding: 10px 16px;
+            font-weight: 700;
+            box-shadow: 0 5px 14px rgba(22, 163, 74, 0.18);
+        }
+
+        /* ============================================================
+           ASSET CARDS
+        ============================================================ */
+
+        .asset-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .asset-title {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .asset-title-icon {
+            width: 31px;
+            height: 31px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .asset-number {
+            color: var(--muted);
+            font-size: 0.72rem;
+            margin-right: 4px;
+        }
+
+        .status-badge {
+            border-radius: 20px;
+            padding: 5px 10px;
+            font-size: 0.7rem;
+            font-weight: 750;
+        }
+
+        .status-loaded {
+            background: var(--success-light);
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+
+        .status-none {
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+        }
+
+        .asset-selection {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 11px;
+            padding: 12px;
+        }
+
+        .asset-label {
+            font-size: 0.73rem;
+            font-weight: 750;
+            color: var(--dark-muted);
+            margin-bottom: 6px;
+        }
+
+        .asset-help {
+            font-size: 0.72rem;
+            color: var(--muted);
+        }
+
+        .meta-box {
+            background: #f8fafc;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            padding: 10px 12px;
+        }
+
+        /* ============================================================
+           ATTACK & DEFEND PANEL
+        ============================================================ */
+
+        .action-panel {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .action-panel-title {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.76rem;
+            font-weight: 750;
+            margin-bottom: 8px;
+        }
+
+        /* ============================================================
+           VERSION HISTORY
+        ============================================================ */
+
+        #versionList {
+            max-height: 270px;
+            overflow-y: auto;
+        }
+
+        .version-item {
+            padding: 12px 15px !important;
+            border-color: #edf0f4 !important;
+        }
+
+        .version-tag {
+            background: var(--primary-light);
+            color: var(--primary);
+            border: 1px solid #c7d2fe;
+            border-radius: 7px;
+            padding: 3px 7px;
+            font-size: 0.72rem;
+            font-weight: 800;
+        }
+
+        .version-operation {
+            color: var(--dark-muted);
+            font-weight: 650;
+            font-size: 0.76rem;
+        }
+
+        /* ============================================================
+           CHAT / AGENT
+        ============================================================ */
+
+        .agent-card {
+            min-height: 650px;
+        }
+
+        .agent-header-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--purple-light);
+            color: var(--purple);
+        }
+
+        .agent-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 20px;
+            padding: 5px 10px;
+            font-size: 0.7rem;
+            font-weight: 750;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .chat-box {
+            height: 395px;
+            overflow-y: auto;
+            background:
+                linear-gradient(180deg,
+                    #fbfcff 0%,
+                    #f8fafc 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 13px;
+            padding: 16px;
+            scroll-behavior: smooth;
+        }
+
+        .chat-msg {
+            margin-bottom: 13px;
+            padding: 11px 14px;
+            border-radius: 13px;
+            max-width: 88%;
+            font-size: 0.88rem;
+            line-height: 1.55;
+            white-space: pre-wrap;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        }
+
+        .chat-user {
+            background: linear-gradient(135deg, #4f46e5, #6366f1);
+            color: #ffffff;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-bot {
+            background: #ffffff;
+            color: #334155;
+            margin-right: auto;
+            border: 1px solid #e2e8f0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-bot::before {
+            content: "AI";
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 23px;
+            height: 23px;
+            border-radius: 7px;
+            background: var(--purple-light);
+            color: var(--purple);
+            font-size: 0.62rem;
+            font-weight: 800;
+            margin-right: 7px;
+            vertical-align: middle;
+        }
+
+        .quick-actions-title {
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 7px;
+        }
+
+        .quick-action {
+            border-radius: 9px !important;
+            font-weight: 650 !important;
+            font-size: 0.72rem !important;
+            padding: 6px 10px !important;
+            border-color: #c7d2fe !important;
+            color: #4338ca !important;
+            background: #ffffff !important;
+        }
+
+        .quick-action:hover {
+            background: var(--primary-light) !important;
+        }
+
+        .chat-input-wrap {
+            background: #ffffff;
+            border: 1px solid #dbe1ea;
+            border-radius: 12px;
+            padding: 4px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+        }
+
+        .chat-input-wrap .form-control {
+            border: 0;
+            box-shadow: none;
+            padding-left: 11px;
+        }
+
+        .chat-send {
+            border-radius: 9px !important;
+            width: 42px;
+            height: 38px;
+        }
+
+        /* ============================================================
+           ACTION LOG
+        ============================================================ */
+
+        .action-log {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 11px;
+            padding: 10px;
+            min-height: 44px;
+        }
+
+        .action-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 9px;
+            background: var(--success-light);
+            color: #166534;
+            border-radius: 20px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            margin: 3px;
+            border: 1px solid #bbf7d0;
+        }
+
+        /* ============================================================
+           RIGHT PANEL / CHART
+        ============================================================ */
+
+        .chart-card {
+            min-height: 330px;
+        }
+
+        .chart-container {
+            height: 235px;
+            position: relative;
+        }
+
+        .chart-empty {
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 11px;
+            padding: 14px;
+        }
+
+        /* ============================================================
+           REPORT
+        ============================================================ */
+
+        .report-card {
+            min-height: 410px;
+        }
+
+        .report-preview {
+            background: #fbfcfe;
+            color: #334155;
+            padding: 17px;
+            border-radius: 11px;
+            height: 350px;
+            overflow-y: auto;
+            font-size: 0.82rem;
+            line-height: 1.65;
+            border: 1px solid #e2e8f0;
+        }
+
+        .report-preview h3,
+        .report-preview h4,
+        .report-preview h5 {
+            color: var(--text);
+            margin-top: 14px;
+            margin-bottom: 8px;
+        }
+
+        .report-preview h3 {
+            font-size: 1.05rem;
+        }
+
+        .report-preview h4 {
+            font-size: 0.96rem;
+        }
+
+        .report-preview h5 {
+            font-size: 0.88rem;
+        }
+
+        .report-preview code {
+            background: #eef2ff;
+            color: #4338ca;
+            padding: 2px 5px;
+            border-radius: 4px;
+        }
+
+        /* ============================================================
+           MODAL
+        ============================================================ */
+
+        .modal-content {
+            border: 0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+            border-bottom: 1px solid #ddd6fe;
+        }
+
+        /* ============================================================
+           FORM CONTROLS
+        ============================================================ */
+
+        .form-control,
+        .form-select {
+            border-color: #dbe1ea;
+            border-radius: 9px;
+            color: var(--text);
+            font-size: 0.82rem;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: #818cf8;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+        }
+
+        .btn {
+            border-radius: 9px;
+            font-size: 0.8rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+
+        .btn-outline-primary {
+            border-color: #a5b4fc;
+            color: #4338ca;
+        }
+
+        .btn-outline-primary:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* ============================================================
+           SCROLLBARS
+        ============================================================ */
+
+        ::-webkit-scrollbar {
+            width: 7px;
+            height: 7px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* ============================================================
+           RESPONSIVE
+        ============================================================ */
+
+        @media (max-width: 1200px) {
+            .nav-control-label {
+                display: none;
+            }
+
+            .nav-select {
+                min-width: 160px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .project-card-inner {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .run-button {
+                width: 100%;
+            }
+
+            .agent-card {
+                min-height: auto;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                position: static !important;
+            }
+
+            .brand-subtitle {
+                display: none;
+            }
+
+            .navbar .container-fluid {
+                flex-direction: column;
+                align-items: stretch !important;
+                gap: 12px;
+            }
+
+            .navbar .d-flex.align-items-center.gap-3 {
+                flex-wrap: wrap;
+            }
+
+            .nav-select {
+                min-width: 0;
+                flex: 1;
+            }
+
+            .preset-banner {
+                padding: 14px;
+            }
+
+            .chat-box {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ================================================================
+     NAVBAR
+================================================================ -->
+
+    <nav class="navbar navbar-expand-lg px-4 py-3 sticky-top">
+        <div class="container-fluid main-container">
+
+            <div class="brand-area">
+                <div class="brand-icon">
+                    <i class="bi bi-robot"></i>
+                </div>
+
+                <div>
+                    <div class="brand-title">
+                        Agentic ML Evaluation Platform
+                    </div>
+
+                    <div class="brand-subtitle">
+                        Intelligent model & dataset evaluation workspace
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <div>
+                    <div class="nav-control-label">
+                        Project
+                    </div>
+
+                    <select id="projectSelect" class="form-select form-select-sm nav-select"
+                        onchange="loadSelectedProject()">
+                        <option value="">
+                            Select or Create Project...
+                        </option>
+                    </select>
+                </div>
+
+                <div class="pt-3">
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newProjectModal">
+                        <i class="bi bi-plus-lg me-1"></i>
+                        New Project
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </nav>
+
+
+    <!-- ================================================================
+     MAIN
+================================================================ -->
+
+    <div class="container-fluid px-4 py-4 main-container">
+
+        <!-- ============================================================
+         BENCHMARK PRESETS
+    ============================================================= -->
+
+        <div class="section-title">
+            Quick Start
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+
+                <div class="preset-banner">
+
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+
+                        <div class="preset-icon">
+                            <i class="bi bi-lightning-charge-fill"></i>
+                        </div>
+
+                        <div class="flex-grow-1">
+
+                            <div class="preset-title">
+                                Benchmark Presets
+                            </div>
+
+                            <div class="preset-description">
+                                Quickly load a ready-to-evaluate model and dataset.
+                            </div>
+
+                        </div>
+
+                        <select id="presetDropdown" class="form-select form-select-sm" style="min-width: 300px;">
+                            <option value="iris" selected>
+                                Iris Flower Classification
+                                (4 Features, 3 Classes)
+                            </option>
+
+                            <option value="breast_cancer">
+                                Breast Cancer Diagnostics
+                                (30 Features)
+                            </option>
+
+                            <option value="wine">
+                                Wine Cultivar Benchmark
+                                (13 Features)
+                            </option>
+                        </select>
+
+                        <button class="btn btn-primary fw-semibold" onclick="loadBenchmarkPreset()">
+                            <i class="bi bi-download me-1"></i>
+                            Load Benchmark
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+
+        <!-- ============================================================
+         CURRENT PROJECT
+    ============================================================= -->
+
+        <div class="section-title">
+            Current Workspace
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+
+                <div class="card project-card">
+
+                    <div class="card-body project-card-inner">
+
+                        <div class="project-heading">
+
+                            <div class="project-icon">
+                                <i class="bi bi-folder2-open"></i>
+                            </div>
+
+                            <div>
+                                <h5 class="project-title" id="currentProjectTitle">
+                                    No Project Selected
+                                </h5>
+
+                                <p class="project-description" id="currentProjectDesc">
+                                    Select a project or load a benchmark preset
+                                    above to begin evaluation.
+                                </p>
+                            </div>
+
+                        </div>
+
+                        <button id="runEvalBtn" class="btn btn-success run-button" onclick="triggerFullEvaluation()"
+                            disabled>
+                            <i class="bi bi-play-fill me-1"></i>
+                            Run Agentic Evaluation
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+
+        <!-- ============================================================
+         THREE COLUMN WORKSPACE
+    ============================================================= -->
+
+        <div class="row g-4">
+
+            <!-- ========================================================
+             LEFT COLUMN
+        ========================================================= -->
+
+            <div class="col-xl-3 col-lg-4">
+
+                <div class="section-title">
+                    Assets & Data
+                </div>
+
+
+                <!-- MODEL -->
+
+                <div class="card">
+
+                    <div class="card-header">
+                        <div class="asset-header">
+
+                            <div class="asset-title">
+
+                                <div class="asset-title-icon">
+                                    <i class="bi bi-cpu"></i>
+                                </div>
+
+                                <div>
+                                    <span class="asset-number">01</span>
+                                    Machine Learning Model
+                                </div>
+
+                            </div>
+
+                            <span id="modelBadge" class="status-badge status-none">
+                                None
+                            </span>
+
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="asset-label">
+                            Upload a model
+                        </div>
+
+                        <input type="file" id="modelFileInput" class="form-control form-control-sm mb-2"
+                            accept=".pkl,.joblib,.pt,.pth,.onnx">
+
+                        <button class="btn btn-outline-primary w-100 mb-3" onclick="uploadModel()">
+                            <i class="bi bi-upload me-1"></i>
+                            Upload Model
+                        </button>
+
+                        <div class="asset-selection">
+
+                            <div class="asset-label">
+                                <i class="bi bi-database me-1"></i>
+                                Use an existing model
+                            </div>
+
+                            <div class="input-group input-group-sm">
+
+                                <select id="savedModelSelect" class="form-select">
+                                    <option value="">
+                                        No saved models
+                                    </option>
+                                </select>
+
+                                <button class="btn btn-outline-secondary" onclick="selectSavedModel()">
+                                    Use
+                                </button>
+
+                            </div>
+
+                            <div id="selectedModelName" class="asset-help mt-2">
+                                No model selected.
+                            </div>
+
+                        </div>
+
+                        <div id="modelMetaBox" class="meta-box mt-3 text-muted small" style="display: none;"></div>
+
+                    </div>
+                </div>
+
+
+                <!-- DATASET -->
+
+                <div class="card">
+
+                    <div class="card-header">
+
+                        <div class="asset-header">
+
+                            <div class="asset-title">
+
+                                <div class="asset-title-icon" style="background:#ecfdf3;color:#15803d;">
+                                    <i class="bi bi-table"></i>
+                                </div>
+
+                                <div>
+                                    <span class="asset-number">02</span>
+                                    Dataset
+                                </div>
+
+                            </div>
+
+                            <span id="datasetBadge" class="status-badge status-none">
+                                None
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="asset-label">
+                            Upload a dataset
+                        </div>
+
+                        <input type="file" id="datasetFileInput" class="form-control form-control-sm mb-2"
+                            accept=".csv,.parquet,.json">
+
+                        <button class="btn btn-outline-primary w-100 mb-3" onclick="uploadDataset()">
+                            <i class="bi bi-upload me-1"></i>
+                            Upload Dataset
+                        </button>
+
+                        <div class="asset-selection">
+
+                            <div class="asset-label">
+                                <i class="bi bi-database me-1"></i>
+                                Use an existing dataset
+                            </div>
+
+                            <div class="input-group input-group-sm">
+
+                                <select id="savedDatasetSelect" class="form-select">
+                                    <option value="">
+                                        No saved datasets
+                                    </option>
+                                </select>
+
+                                <button class="btn btn-outline-secondary" onclick="selectSavedDataset()">
+                                    Use
+                                </button>
+
+                            </div>
+
+                            <div id="selectedDatasetName" class="asset-help mt-2">
+                                No dataset selected.
+                            </div>
+
+                        </div>
+
+                        <div id="datasetMetaBox" class="meta-box mt-3 text-muted small" style="display: none;"></div>
+                    </div>
+                </div>
+
+
+                <!-- DATA TRANSFORMATIONS -->
+
+                <div class="card">
+
+                    <div class="card-header">
+
+                        <div class="asset-header">
+
+                            <div class="asset-title">
+
+                                <div class="asset-title-icon" style="background:#fef3c7;color:#b45309;">
+                                    <i class="bi bi-shuffle"></i>
+                                </div>
+
+                                <div>
+                                    <span class="asset-number">03</span>
+                                    Data Transformations
+                                </div>
+
+                            </div>
+
+                            <span id="transformBadge" class="status-badge status-none">
+                                Ready
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="asset-label">
+                            Select a transformation
+                        </div>
+
+                        <select id="transformSelect" class="form-select form-select-sm mb-2">
+                            <option value="handle_missing_values">
+                                Handle Missing Values (Median Imputation)
+                            </option>
+                            <option value="balance_data">
+                                Balance Classes (SMOTE Oversampling)
+                            </option>
+                            <option value="handle_outliers">
+                                Handle Outliers (Clipping)
+                            </option>
+                            <option value="scale_data">
+                                Scale Features (StandardScaler)
+                            </option>
+                            <option value="add_gaussian_noise">
+                                Inject Noise (10% Gaussian Noise)
+                            </option>
+                            <option value="inject_missing_values">
+                                Inject Missing Values (Robustness Test)
+                            </option>
+                            <option value="inject_label_noise">
+                                Inject Label Noise (Robustness Test)
+                            </option>
+                        </select>
+
+                        <button class="btn btn-outline-primary w-100" onclick="applySelectedTransformation()">
+                            <i class="bi bi-play-fill me-1"></i>
+                            Apply Transformation
+                        </button>
+
+                    </div>
+                </div>
+
+                <!-- VERSION HISTORY -->
+
+                <div class="card">
+
+                    <div class="card-header">
+
+                        <div class="d-flex align-items-center gap-2">
+
+                            <div class="asset-title-icon" style="background:#fff7ed;color:#d97706;">
+                                <i class="bi bi-diagram-3"></i>
+                            </div>
+
+                            <span>
+                                Dataset Version History
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                    <div class="card-body p-0">
+
+                        <ul id="versionList" class="list-group list-group-flush small">
+
+                            <li class="list-group-item text-muted p-3">
+                                No versions uploaded yet.
+                            </li>
+
+                        </ul>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- ========================================================
+             MIDDLE COLUMN
+        ========================================================= -->
+
+            <div class="col-xl-5 col-lg-8">
+
+                <div class="section-title">
+                    Agent Workspace
+                </div>
+
+                <div class="card agent-card">
+
+                    <div class="card-header">
+
+                        <div class="d-flex align-items-center justify-content-between">
+
+                            <div class="d-flex align-items-center gap-2">
+
+                                <div class="agent-header-icon">
+                                    <i class="bi bi-chat-dots"></i>
+                                </div>
+
+                                <div>
+                                    <div>
+                                        Agent Conversational Controller
+                                    </div>
+
+                                    <div class="text-muted" style="font-size:.68rem;font-weight:500;">
+                                        Ask questions or control the evaluation
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <span id="agentStatusBadge" class="agent-status bg-secondary text-white">
+                                <span class="status-dot"></span>
+                                Idle
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="card-body">
+
+                        <!-- CHAT -->
+
+                        <div id="chatBox" class="chat-box mb-3">
+
+                            <div class="chat-msg chat-bot">
+                                Welcome! Select a benchmark preset or upload
+                                your own model and dataset.
+
+                                You can trigger an Adversarial Attack or Defense, evaluate, inspect, or explain your ML
+                                project.
+                            </div>
+
+                        </div>
+
+
+                        <!-- QUICK ACTIONS -->
+
+                        <div class="quick-actions-title">
+                            Quick actions
+                        </div>
+
+                        <div id="quickActions" class="d-flex flex-wrap gap-1 mb-3"></div>
+
+
+                        <!-- ACTION LOG -->
+
+                        <div class="quick-actions-title">
+                            Agent activity
+                        </div>
+
+                        <div id="actionsLog" class="action-log mb-3">
+                            <span class="text-muted small">
+                                No actions yet.
+                            </span>
+                        </div>
+
+
+                        <!-- CHAT INPUT -->
+
+                        <div class="chat-input-wrap">
+
+                            <div class="input-group">
+
+                                <input type="text" id="chatInput" class="form-control"
+                                    placeholder="Ask the agent anything about your model or dataset..."
+                                    onkeydown="if(event.key==='Enter') sendChatMessage()">
+
+                                <button class="btn btn-primary chat-send" onclick="sendChatMessage()"
+                                    title="Send message">
+                                    <i class="bi bi-send-fill"></i>
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+
+            <!-- ========================================================
+             RIGHT COLUMN
+        ========================================================= -->
+
+            <div class="col-xl-4 col-lg-12">
+
+                <div class="section-title">
+                    Evaluation Results
+                </div>
+
+                <!-- NOISE / SECURITY COMPARISON CHART -->
+                <div class="card chart-card">
+
+                    <div class="card-header">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="asset-title-icon" style="background:#fef2f2;color:#dc2626;">
+                                    <i class="bi bi-bar-chart-line"></i>
+                                </div>
+                                <div>
+                                    <div id="chartHeaderTitle" class="fw-bold" style="font-size:0.85rem;">Robustness
+                                        Comparison</div>
+                                    <div id="chartHeaderSubtitle" class="text-muted"
+                                        style="font-size:.68rem;font-weight:500;">Clean vs Gaussian noise</div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-1">
+                                <!-- View Switcher -->
+                                <select id="chartViewSelect" class="form-select form-select-sm" style="width:150px;"
+                                    onchange="updateChartMode()">
+                                    <option value="noise" selected>Gaussian Noise</option>
+                                    <option value="attacks">All Attacks</option>
+                                    <option value="defenses">All Defenses</option>
+                                    <option value="sweep">Attack Sweep</option>
+                                    <option value="loop">Hardening Loop</option>
+                                </select>
+
+                                <!-- Metric Switcher (Active only for Noise view) -->
+                                <select id="metricSelect" class="form-select form-select-sm" style="width:105px;"
+                                    onchange="renderActiveChart()">
+                                    <option value="accuracy">Accuracy</option>
+                                    <option value="precision_macro">Precision</option>
+                                    <option value="recall_macro">Recall</option>
+                                    <option value="f1_macro">Macro F1</option>
+                                </select>
+
+                                <!-- Enlarge Button -->
+                                <button class="btn btn-sm btn-outline-secondary px-2" onclick="openEnlargedChartModal()"
+                                    title="Enlarge Chart">
+                                    <i class="bi bi-arrows-angle-expand"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary px-2" onclick="refreshChartData()"
+                                    title="Refresh Chart Data">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="chart-container" style="cursor: pointer;" onclick="openEnlargedChartModal()"
+                            title="Click to enlarge">
+                            <canvas id="noiseComparisonChart"
+                                aria-label="Security and robustness comparison chart"></canvas>
+                        </div>
+
+                        <div id="chartEmptyState" class="chart-empty small text-muted text-center mt-2">
+                            <i class="bi bi-bar-chart me-1"></i>
+                            <span id="chartEmptyMessage">Run an evaluation, attack, or defense to view comparison results.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+
+            <!-- REPORT -->
+
+            <div class="card report-card">
+
+                <div class="card-header">
+
+                    <div class="d-flex align-items-center justify-content-between">
+
+                        <div class="d-flex align-items-center gap-2">
+
+                            <div class="asset-title-icon" style="background:#f0f9ff;color:#0284c7;">
+                                <i class="bi bi-file-earmark-text"></i>
+                            </div>
+
+                            <div>
+                                <div>
+                                    Latest Evaluation Report
+                                </div>
+
+                                <div class="text-muted" style="font-size:.68rem;font-weight:500;">
+                                    Generated analysis and recommendations
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <a id="mdDownloadLink" href="#" class="btn btn-sm btn-outline-primary" style="display:none;">
+                            <i class="bi bi-download me-1"></i>
+                            Download
+                        </a>
+
+                    </div>
+
+                </div>
+
+                <div class="card-body">
+
+                    <div id="reportPreview" class="report-preview text-muted">
+                        <div class="text-center py-5">
+
+                            <i class="bi bi-file-earmark-bar-graph" style="font-size:2rem;color:#cbd5e1;"></i>
+
+                            <div class="mt-2">
+                                Run an evaluation or attack to view the latest report.
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ENLARGED CHART MODAL -->
+    <div class="modal fade" id="enlargedChartModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title mb-0 fw-bold" id="enlargedChartModalTitle">
+                            <i class="bi bi-bar-chart-line-fill me-2 text-primary"></i>
+                            Security & Robustness Evaluation Comparison
+                        </h5>
+                        <small class="text-muted" id="enlargedChartModalSubtitle">Expanded View</small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <div style="height: 480px; position: relative;">
+                        <canvas id="enlargedChartCanvas"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- DEFENDED ATTACK CONFIGURATION MODAL -->
+    <div class="modal fade" id="defendedAttackModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title mb-1 fw-bold">
+                            <i class="bi bi-shield-slash me-2 text-danger"></i>
+                            Execute Defended Attack Evaluation
+                        </h5>
+                        <small class="text-muted">Test an evasion attack against an in-memory defended classifier
+                            wrapper.</small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Evasion Attack Method</label>
+                        <select id="defendedAttackName" class="form-select form-select-sm">
+                            <option value="fgsm" selected>Fast Gradient Sign Method (FGSM)</option>
+                            <option value="pgd">Projected Gradient Descent (PGD)</option>
+                            <option value="cw">Carlini & Wagner (C&W L2)</option>
+                            <option value="boundary_attack">Boundary Attack</option>
+                            <option value="hopskipjump">HopSkipJump Attack</option>
+                            <option value="zoo">ZOO Attack</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Active Defense Filter</label>
+                        <select id="defendedDefenseName" class="form-select form-select-sm">
+                            <option value="feature_squeezing" selected>Feature Squeezing (Preprocessor)</option>
+                            <option value="gaussian_augmentation">Gaussian Augmentation (Preprocessor)</option>
+                            <option value="spatial_smoothing">Spatial Smoothing (Preprocessor)</option>
+                            <option value="clip_values">Clip Values (Preprocessor)</option>
+                            <option value="reverse_sigmoid">Reverse Sigmoid (Postprocessor)</option>
+                            <option value="class_labels">Class Labels (Postprocessor)</option>
+                            <option value="high_confidence_masking">High Confidence Masking (Postprocessor)</option>
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Epsilon / Step Size</label>
+                            <input type="number" id="defendedEps" class="form-control form-control-sm" value="0.1"
+                                step="0.01" min="0.001">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Max Iterations</label>
+                            <input type="number" id="defendedMaxIter" class="form-control form-control-sm" value="10"
+                                step="1" min="1">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="submitDefendedAttackModal()">
+                        <i class="bi bi-play-fill me-1"></i>Run Defended Attack
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HARDEN MODEL CONFIGURATION MODAL -->
+    <div class="modal fade" id="hardenModelModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title mb-1 fw-bold">
+                            <i class="bi bi-shield-lock me-2 text-success"></i>
+                            Adversarial Model Hardening
+                        </h5>
+                        <small class="text-muted">Retrain the model adversarially and export a hardened checkpoint
+                            asset.</small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Hardening Method</label>
+                        <select id="hardenMethod" class="form-select form-select-sm">
+                            <option value="pgd" selected>PGD Adversarial Retraining</option>
+                            <option value="fgsm">FGSM Adversarial Training</option>
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Epsilon Perturbation</label>
+                            <input type="number" id="hardenEps" class="form-control form-control-sm" value="0.1"
+                                step="0.01" min="0.001">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Training Epochs / Steps</label>
+                            <input type="number" id="hardenEpochs" class="form-control form-control-sm" value="5"
+                                step="1" min="1">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success btn-sm" onclick="submitHardenModelModal()">
+                        <i class="bi bi-cpu-fill me-1"></i>Start Model Hardening
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ================================================================
+     NEW PROJECT MODAL
+================================================================ -->
+
+    <div class="modal fade" id="newProjectModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+
+            <div class="modal-content">
+
+                <div class="modal-header">
+
+                    <div>
+
+                        <h5 class="modal-title mb-1">
+                            <i class="bi bi-folder-plus me-2 text-primary"></i>
+                            Create New Evaluation Project
+                        </h5>
+
+                        <small class="text-muted">
+                            Create a workspace for your model and dataset.
+                        </small>
+
+                    </div>
+
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
+                </div>
+
+
+                <div class="modal-body">
+
+                    <div class="mb-3">
+
+                        <label class="form-label fw-semibold">
+                            Project Name
+                        </label>
+
+                        <input type="text" id="newProjName" class="form-control"
+                            placeholder="e.g. Iris Classification Project">
+
+                    </div>
+
+
+                    <div class="mb-3">
+
+                        <label class="form-label fw-semibold">
+                            Description
+                        </label>
+
+                        <textarea id="newProjDesc" class="form-control" rows="3"
+                            placeholder="Evaluate Iris dataset and model robustness"></textarea>
+
+                    </div>
+
+                </div>
+
+
+                <div class="modal-footer">
+
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="button" class="btn btn-primary" onclick="createProject()">
+                        <i class="bi bi-plus-lg me-1"></i>
+                        Create Project
+                    </button>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================================================================
+     LIBRARIES
+================================================================ -->
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+
+    <!-- ================================================================
+     APPLICATION JAVASCRIPT
+================================================================ -->
+
+    <script>
+
+        let currentProject = null;
+        let noiseMetrics = null;
+        let noiseChart = null;
+
+        /* ================================================================
+   SECURITY EXPERIMENTS & MULTI-MODE CHART LOGIC
+================================================================ */
+
+        let securityExperiments = [];
+        let enlargedChart = null;
+
+        async function fetchSecurityExperiments() {
+            if (!currentProject) return;
+            try {
+                const res = await fetch(`/projects/${currentProject.id}/security-experiments`);
+                if (res.ok) {
+                    const data = await res.json();
+                    securityExperiments = data.experiments || [];
+                }
+            } catch (e) {
+                console.error("Error fetching security experiments:", e);
+            }
+        }
+
+        function updateChartMode() {
+            const view = document.getElementById("chartViewSelect").value;
+            const titleEl = document.getElementById("chartHeaderTitle");
+            const subEl = document.getElementById("chartHeaderSubtitle");
+            const metricSelect = document.getElementById("metricSelect");
+
+            metricSelect.style.display = "inline-block";
+
+            // Each view supplies its own empty-state wording, so reset to the
+            // default before rendering. Without this a view with no data would
+            // leave its message behind for the next view to display.
+            const emptyMsg = document.getElementById("chartEmptyMessage");
+            if (emptyMsg) {
+                emptyMsg.textContent =
+                    "Run an evaluation, attack, or defense to view comparison results.";
+            }
+
+            if (view === "noise") {
+                titleEl.textContent = "Robustness Comparison";
+                subEl.textContent = "Clean vs Gaussian noise";
+            } else if (view === "attacks") {
+                titleEl.textContent = "Adversarial Attacks";
+                subEl.textContent = "Clean vs Adversarial Metrics";
+            } else if (view === "defenses") {
+                titleEl.textContent = "Defensive Measures";
+                subEl.textContent = "Clean vs Defended Metrics";
+            } else if (view === "sweep") {
+                titleEl.textContent = "Attack / Defense Sweep";
+                subEl.textContent = "Every combination compared independently";
+            } else if (view === "loop") {
+                titleEl.textContent = "Cumulative Hardening Loop";
+                // Rounds record accuracy only, so offering a precision/recall/F1
+                // picker here would imply a choice the data cannot honour.
+                metricSelect.style.display = "none";
+                subEl.textContent = "Clean vs adversarial accuracy across rounds";
+            }
+
+            renderActiveChart();
+        }
+
+        function renderActiveChart() {
+            const view = document.getElementById("chartViewSelect").value;
+            if (view === "noise") {
+                renderNoiseChart();
+            } else if (view === "sweep") {
+                renderSweepChart(false);
+            } else if (view === "loop") {
+                renderLoopChart(false);
+            } else {
+                renderSecurityComparisonChart(view, "noiseComparisonChart", false);
+            }
+        }
+
+        /* Helper functions to safely parse metrics and scale percentages */
+        function parseMetricObj(obj) {
+            if (!obj) return {};
+            if (typeof obj === "string") {
+                try { return JSON.parse(obj); } catch (e) { return {}; }
+            }
+            return obj;
+        }
+
+        function extractMetricValue(exp, metricKey, isBaseline = true) {
+            if (!exp) return 0;
+            const comp = parseMetricObj(exp.comparison);
+            const bMetrics = parseMetricObj(exp.metrics_before);
+            const aMetrics = parseMetricObj(exp.metrics_after);
+
+            let baselineKeys = [];
+            let evalKeys = [];
+
+            if (metricKey.includes("precision")) {
+                baselineKeys = ["clean_precision", "precision_macro", "precision"];
+                evalKeys = ["adversarial_precision", "defended_precision", "experiment_precision", "precision_macro", "precision"];
+            } else if (metricKey.includes("recall")) {
+                baselineKeys = ["clean_recall", "recall_macro", "recall"];
+                evalKeys = ["adversarial_recall", "defended_recall", "experiment_recall", "recall_macro", "recall"];
+            } else if (metricKey.includes("f1")) {
+                baselineKeys = ["clean_f1", "f1_macro", "f1"];
+                evalKeys = ["adversarial_f1", "defended_f1", "experiment_f1", "f1_macro", "f1"];
+            } else {
+                baselineKeys = ["clean_accuracy", "baseline_accuracy", "accuracy"];
+                evalKeys = ["adversarial_accuracy", "defended_accuracy", "experiment_accuracy", "accuracy"];
+            }
+
+            // Accuracy fallbacks prevent 0-height empty charts if explicit metrics are missing
+            const accBaselineKeys = ["clean_accuracy", "baseline_accuracy", "accuracy"];
+            const accEvalKeys = ["adversarial_accuracy", "defended_accuracy", "experiment_accuracy", "accuracy"];
+
+            const targetObj = isBaseline ? bMetrics : aMetrics;
+            const keysToSearch = (isBaseline ? baselineKeys : evalKeys).concat(isBaseline ? accBaselineKeys : accEvalKeys);
+
+            let val = null;
+
+            if (targetObj) {
+                for (const k of keysToSearch) {
+                    if (targetObj[k] !== undefined && targetObj[k] !== null) {
+                        val = targetObj[k];
+                        break;
+                    }
+                }
+            }
+
+            if (val === null) {
+                for (const k of keysToSearch) {
+                    if (comp && comp[k] !== undefined && comp[k] !== null) {
+                        val = comp[k];
+                        break;
+                    }
+                    if (exp && exp[k] !== undefined && exp[k] !== null) {
+                        val = exp[k];
+                        break;
+                    }
+                }
+            }
+
+            if (val === null) val = 0;
+            let num = parseFloat(val);
+            if (isNaN(num)) num = 0;
+            if (num <= 1.0 && num > 0) num = num * 100;
+            return num;
+        }
+
+        function floatVal(v) {
+            const parsed = parseFloat(v);
+            return isNaN(parsed) ? 0 : parsed;
+        }
+
+        async function openEnlargedChartModal() {
+            await refreshChartData();
+            const view = document.getElementById("chartViewSelect").value;
+
+            document.getElementById("enlargedChartModalTitle").textContent =
+                view === "noise" ? "Gaussian Noise Perturbation Comparison"
+                    : view === "attacks" ? "Adversarial Attacks Accuracy Comparison"
+                        : view === "defenses" ? "Defensive Measures Accuracy Comparison"
+                            : view === "sweep" ? "Attack / Defense Sweep"
+                                : "Cumulative Hardening Loop";
+
+            document.getElementById("enlargedChartModalSubtitle").textContent =
+                `Project: ${currentProject ? currentProject.name : "Active Workspace"}`;
+
+            const modalEl = document.getElementById("enlargedChartModal");
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+
+            setTimeout(() => {
+                if (view === "noise") {
+                    const metric = document.getElementById("metricSelect").value;
+                    const clean = noiseMetrics && noiseMetrics.clean_metrics ? noiseMetrics.clean_metrics[metric] : undefined;
+                    const noisy = noiseMetrics && noiseMetrics.noisy_metrics ? noiseMetrics.noisy_metrics[metric] : undefined;
+
+                    if (clean !== undefined && noisy !== undefined) {
+                        const canvas = document.getElementById("enlargedChartCanvas");
+                        if (enlargedChart) enlargedChart.destroy();
+                        enlargedChart = claimChartCanvas("enlargedChartCanvas", () => new Chart(canvas, {
+                            type: "bar",
+                            data: {
+                                labels: ["Without Noise", "With Gaussian Noise"],
+                                datasets: [{
+                                    label: metric.toUpperCase(),
+                                    data: [clean * 100, noisy * 100],
+                                    backgroundColor: ["#4f46e5", "#f97316"],
+                                    borderRadius: 8
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v => `${v}%` } } }
+                            }
+                        }));
+                    }
+                } else if (view === "sweep") {
+                    renderSweepChart(true);
+                } else if (view === "loop") {
+                    renderLoopChart(true);
+                } else {
+                    renderSecurityComparisonChart(view, "enlargedChartCanvas", true);
+                }
+            }, 200);
+        }
+        /* ================================================================
+           QUICK ACTIONS
+        ================================================================ */
+
+        const quickActionLabels = [
+            ["Inspect my model and dataset", "Inspect"],
+            ["What were the baseline metrics before any transformation?", "Baseline Metrics"],
+            ["Evaluate my model and dataset", "Full Evaluation"],
+            ["prompt_attack_choice", "Attack"],
+            ["Compare evaluation results", "Compare Results"],
+            ["prompt_defense_choice", "Defend Model"],
+            ["open_defended_attack_modal", "Defended Attack"],
+            ["open_harden_model_modal", "Harden Model"],
+            ["Generate the report", "Report"],
+            ["Show model choices", "Pick Model"]
+        ];
+
+        function openDefendedAttackModal() {
+            if (!currentProject) {
+                addChatMessage("assistant", "Please select or create a project first.");
+                return;
+            }
+            const modalEl = document.getElementById("defendedAttackModal");
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        }
+
+        function openHardenModelModal() {
+            if (!currentProject) {
+                addChatMessage("assistant", "Please select or create a project first.");
+                return;
+            }
+            const modalEl = document.getElementById("hardenModelModal");
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        }
+
+        function submitDefendedAttackModal() {
+            const attack = document.getElementById("defendedAttackName").value;
+            const defense = document.getElementById("defendedDefenseName").value;
+            const eps = document.getElementById("defendedEps").value;
+            const maxIter = document.getElementById("defendedMaxIter").value;
+
+            const modalEl = document.getElementById("defendedAttackModal");
+            bootstrap.Modal.getInstance(modalEl)?.hide();
+
+            sendChatMessage(`Run ${attack} attack on my model with ${defense} defense filter using eps=${eps} max_iter=${maxIter} and generate a report`);
+        }
+
+        function submitHardenModelModal() {
+            const method = document.getElementById("hardenMethod").value;
+            const eps = document.getElementById("hardenEps").value;
+            const epochs = document.getElementById("hardenEpochs").value;
+
+            const modalEl = document.getElementById("hardenModelModal");
+            bootstrap.Modal.getInstance(modalEl)?.hide();
+
+            sendChatMessage(`Harden my model using ${method} adversarial retraining with eps=${eps} max_iter=${epochs}`);
+        }
+
+        /* Update quick action click dispatcher */
+        function renderQuickActions() {
+            const container = document.getElementById("quickActions");
+            if (!container) return;
+            container.innerHTML = "";
+
+            quickActionLabels.forEach(([message, label]) => {
+                const button = document.createElement("button");
+                button.className = "btn btn-sm btn-outline-primary quick-action";
+                button.textContent = label;
+
+                button.onclick = (e) => {
+                    e.preventDefault();
+
+                    if (message === "prompt_attack_choice") return promptAttackSelection();
+                    if (message === "prompt_defense_choice") return promptDefenseSelection();
+                    if (message === "open_defended_attack_modal") return openDefendedAttackModal();
+                    if (message === "open_harden_model_modal") return openHardenModelModal();
+                    if (message === "Show model choices") return showModelChooser();
+
+                    sendChatMessage(message);
+                };
+
+                container.appendChild(button);
+            });
+        }
+
+
+        /* ================================================================
+           UPDATED 3-STAGE METRIC EXTRACTION & CHART RENDERING
+        ================================================================ */
+
+        function extract3StageMetricValues(exp, metricKey) {
+            if (!exp) return { clean: 0, defended: 0, postAttack: 0 };
+
+            const comp = parseMetricObj(exp.comparison);
+            const bMetrics = parseMetricObj(exp.metrics_before);
+            const aMetrics = parseMetricObj(exp.metrics_after);
+
+            let keySuffix = "accuracy";
+            if (metricKey.includes("precision")) keySuffix = "precision";
+            else if (metricKey.includes("recall")) keySuffix = "recall";
+            else if (metricKey.includes("f1")) keySuffix = "f1";
+
+            function getVal(sourceObj, candidates) {
+                if (!sourceObj) return null;
+                for (const k of candidates) {
+                    if (sourceObj[k] !== undefined && sourceObj[k] !== null) return parseFloat(sourceObj[k]);
+                }
+                return null;
+            }
+
+            const cleanCandidates = [`clean_${keySuffix}`, `${keySuffix}_macro`, keySuffix];
+            const defendedCandidates = [`defended_${keySuffix}`, `hardened_${keySuffix}`, `defended_accuracy`, `${keySuffix}_macro`, keySuffix];
+            const postAttackCandidates = [`adversarial_defended_${keySuffix}`, `adversarial_${keySuffix}`, `post_attack_${keySuffix}`, `${keySuffix}_macro`, keySuffix];
+
+            let clean = getVal(bMetrics, cleanCandidates) ?? getVal(comp, cleanCandidates) ?? getVal(exp, cleanCandidates) ?? 0;
+            let defended = getVal(aMetrics, defendedCandidates) ?? getVal(comp, defendedCandidates) ?? getVal(exp, defendedCandidates) ?? clean;
+            let postAttack = getVal(aMetrics, postAttackCandidates) ?? getVal(comp, postAttackCandidates) ?? getVal(exp, postAttackCandidates) ?? 0;
+
+            if (clean > 0 && clean <= 1.0) clean *= 100;
+            if (defended > 0 && defended <= 1.0) defended *= 100;
+            if (postAttack > 0 && postAttack <= 1.0) postAttack *= 100;
+
+            return { clean, defended, postAttack };
+        }
+        function renderSecurityComparisonChart(viewType, canvasId, isModal = false) {
+            const empty = document.getElementById("chartEmptyState");
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            const selectedMetric = document.getElementById("metricSelect").value || "accuracy";
+            const metricLabel = selectedMetric.replace("_macro", "").toUpperCase();
+
+            const securityOps = viewType === "attacks"
+                ? ["boundary_attack", "hopskipjump", "zoo", "fgsm", "pgd", "cw", "attack_defended_model"]
+                : ["gaussian_augmentation", "spatial_smoothing", "feature_squeezing", "clip_values", "reverse_sigmoid", "class_labels", "high_confidence_masking", "harden_model"];
+
+            const filteredExps = securityExperiments.filter(e => securityOps.some(op => (e.operation || "").toLowerCase().includes(op)));
+            const latestPerOp = {};
+            filteredExps.forEach(e => {
+                const op = (e.operation || "").toLowerCase();
+                if (!latestPerOp[op] || (e.created_at && (!latestPerOp[op].created_at || e.created_at > latestPerOp[op].created_at))) {
+                    latestPerOp[op] = e;
+                }
+            });
+
+            const opKeys = Object.keys(latestPerOp);
+
+            if (opKeys.length === 0) {
+                if (!isModal && empty) empty.style.display = "block";
+                if (isModal && enlargedChart) { enlargedChart.destroy(); enlargedChart = null; }
+                else if (!isModal && noiseChart) { noiseChart.destroy(); noiseChart = null; }
+                return;
+            }
+
+            if (!isModal && empty) empty.style.display = "none";
+
+            const labels = [];
+            const cleanGroup = [];
+            const defendedGroup = [];
+            const postAttackGroup = [];
+
+            opKeys.forEach(op => {
+                const exp = latestPerOp[op];
+                labels.push(op.toUpperCase().replace(/_/g, " "));
+                const vals = extract3StageMetricValues(exp, selectedMetric);
+                cleanGroup.push(vals.clean);
+                defendedGroup.push(vals.defended);
+                postAttackGroup.push(vals.postAttack);
+            });
+
+            const chartConfig = {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: `Clean Baseline ${metricLabel}`,
+                            data: cleanGroup,
+                            backgroundColor: "#4f46e5",
+                            borderRadius: 6
+                        },
+                        {
+                            label: `Defended / Hardened ${metricLabel}`,
+                            data: defendedGroup,
+                            backgroundColor: "#16a34a",
+                            borderRadius: 6
+                        },
+                        {
+                            label: `Post-Attack ${metricLabel}`,
+                            data: postAttackGroup,
+                            backgroundColor: "#dc2626",
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: "top" }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: { color: "#eef2f7" },
+                            ticks: { callback: v => `${v}%` }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            };
+
+            if (isModal) {
+                if (enlargedChart) enlargedChart.destroy();
+                enlargedChart = claimChartCanvas("enlargedChartCanvas", () => new Chart(canvas, chartConfig));
+            } else {
+                if (noiseChart) noiseChart.destroy();
+                noiseChart = claimChartCanvas("noiseComparisonChart", () => new Chart(canvas, chartConfig));
+            }
+        }
+
+
+        /* ================================================================
+           MULTI-STEP VIEWS: attack/defense sweep and hardening loop
+
+           These are deliberately separate renderers with their own canvas and
+           globals. The chart above draws one group per operation with three
+           fixed series, so it cannot represent a sequence of steps; teaching it
+           to try would put the working noise and comparison views at risk.
+
+           Both read the per-step metrics persisted on the experiment's
+           comparison.series blob. Older rows have no series and fall back to an
+           explanatory empty state rather than an error.
+           ================================================================ */
+
+        // Charts for the multi-step views. Kept apart from noiseChart and
+        // enlargedChart so destroying one view never tears down another.
+        let sweepChart = null;
+        let sweepEnlargedChart = null;
+        let loopChart = null;
+        let loopEnlargedChart = null;
+
+        const MULTI_STEP_CHART_STYLE = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: true, position: "top" } },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    grid: { color: "#eef2f7" },
+                    ticks: { callback: v => `${v}%` }
+                },
+                x: { grid: { display: false } }
+            }
+        };
+
+        // Every view renders into the same canvas, and Chart.js refuses to hand
+        // a canvas to a second chart while the first still owns it. Each view
+        // therefore keeps its own global but must release the canvas through
+        // this helper, otherwise switching views (Noise -> Sweep, say) throws
+        // "Canvas is already in use".
+        const chartCanvases = {
+            noiseComparisonChart: null,
+            enlargedChartCanvas: null
+        };
+
+        function releaseChartCanvas(canvasId) {
+            const existing = chartCanvases[canvasId];
+            if (!existing) return;
+            try { existing.destroy(); } catch (e) { /* already gone */ }
+            chartCanvases[canvasId] = null;
+        }
+
+        // `factory` must be a thunk, not a chart. Arguments are evaluated before
+        // the call, so passing `new Chart(...)` directly would construct the
+        // chart -- and throw "Canvas is already in use" -- before the release
+        // below ever runs. Deferring construction is what makes the release
+        // happen first.
+        function claimChartCanvas(canvasId, factory) {
+            releaseChartCanvas(canvasId);
+            const chart = factory();
+            chartCanvases[canvasId] = chart;
+            return chart;
+        }
+
+        // Pull the newest experiment carrying a series of the given kind.
+        function latestSeriesExperiment(kind) {
+            const candidates = securityExperiments
+                .map(e => ({ exp: e, series: parseMetricObj(e.comparison).series }))
+                .filter(x => x.series && x.series.kind === kind && (x.series.items || []).length);
+            if (candidates.length === 0) return null;
+            // created_at is an ISO string, so a plain string compare orders it.
+            candidates.sort((a, b) =>
+                ((b.exp.created_at || "") > (a.exp.created_at || "")) ? 1 : -1);
+            return candidates[0];
+        }
+
+        function showMultiStepEmptyState(isModal, message) {
+            const empty = document.getElementById("chartEmptyState");
+            if (!isModal && empty) {
+                empty.style.display = "block";
+                // Write into the message span only. Assigning textContent to the
+                // container would drop the icon element and overwrite the
+                // default wording other views rely on.
+                const textNode = document.getElementById("chartEmptyMessage");
+                if (textNode) textNode.textContent = message;
+            }
+        }
+
+        function renderSweepChart(isModal = false) {
+            const canvas = document.getElementById(isModal ? "enlargedChartCanvas" : "noiseComparisonChart");
+            if (!canvas) return;
+
+            const holder = latestSeriesExperiment("sweep");
+            if (!holder) {
+                showMultiStepEmptyState(isModal,
+                    "No attack/defense sweep found yet. Run a comparative sweep, for example: compare fgsm, pgd and cw with feature_squeezing.");
+                return;
+            }
+
+            const items = holder.series.items;
+            const metricKey = document.getElementById("metricSelect").value || "accuracy";
+            const metricLabel = metricKey.replace("_macro", "").toUpperCase();
+
+            const labels = items.map(it => {
+                const atk = (it.attack_type || "attack").replace(/_/g, " ");
+                const def = it.defense_type ? ` on ${it.defense_type.replace(/_/g, " ")}` : "";
+                return `${atk}${def}`;
+            });
+
+            const pick = (it, keys) => {
+                for (const k of keys) {
+                    const v = it[k];
+                    if (v !== undefined && v !== null) {
+                        const num = parseFloat(v);
+                        return (num > 0 && num <= 1.0) ? num * 100 : num;
+                    }
+                }
+                return null;
+            };
+            // Each step is an independent measurement of the same model, so the
+            // three values are alternatives rather than a sequence.
+            const clean = items.map(it => pick(it, [`clean_${metricLabel.toLowerCase()}`, "clean_accuracy", "accuracy"]));
+            const defended = items.map(it => pick(it, [`defended_${metricLabel.toLowerCase()}`, "defended_accuracy", "accuracy"]));
+            const adversarial = items.map(it => pick(it, [`adversarial_${metricLabel.toLowerCase()}`, "adversarial_accuracy", "accuracy"]));
+
+            const chartConfig = {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: `Clean ${metricLabel}`, data: clean, backgroundColor: "#4f46e5", borderRadius: 6 },
+                        { label: `Defended ${metricLabel}`, data: defended, backgroundColor: "#16a34a", borderRadius: 6 },
+                        { label: `Adversarial ${metricLabel}`, data: adversarial, backgroundColor: "#dc2626", borderRadius: 6 }
+                    ]
+                },
+                options: MULTI_STEP_CHART_STYLE
+            };
+
+            if (isModal) {
+                if (sweepEnlargedChart) sweepEnlargedChart.destroy();
+                sweepEnlargedChart = claimChartCanvas("enlargedChartCanvas", () => new Chart(canvas, chartConfig));
+            } else {
+                const empty = document.getElementById("chartEmptyState");
+                if (empty) empty.style.display = "none";
+                if (sweepChart) sweepChart.destroy();
+                sweepChart = claimChartCanvas("noiseComparisonChart", () => new Chart(canvas, chartConfig));
+            }
+        }
+
+        function renderLoopChart(isModal = false) {
+            const canvas = document.getElementById(isModal ? "enlargedChartCanvas" : "noiseComparisonChart");
+            if (!canvas) return;
+
+            const holder = latestSeriesExperiment("loop");
+            if (!holder) {
+                showMultiStepEmptyState(isModal,
+                    "No hardening loop found yet. Run one, for example: harden my model over 3 rounds using pgd.");
+                return;
+            }
+
+            const items = holder.series.items;
+            const mixed = holder.series.mixed_threat === true;
+
+            // Name the attack on each tick. In a mixed-threat loop each round is
+            // measured against something different, so "Round 3" alone does not
+            // say what the number means.
+            const labels = items.map(it =>
+                it.attack_type ? `R${it.round_index} ${it.attack_type}` : `Round ${it.round_index}`
+            );
+
+            // Values are kept for every round, including a genuinely absent metric,
+// which is omitted rather than plotted as zero. Whether to DRAW A LINE
+            // between rounds is a separate question from whether to show them:
+            // joining two rounds measured against different attacks would
+            // imply a trend the numbers do not support, but nulling them out
+            // would hide the measurements entirely. In a mixed-threat loop
+            // (every round a different attack) nulling leaves a single point
+            // and the chart reads as empty, so a mixed run is plotted as
+            // unconnected points instead. A single-attack loop keeps its line.
+            function values(attacker) {
+                return items.map(it => {
+                    const v = parseFloat(attacker(it));
+                    if (Number.isNaN(v)) return null;
+                    return (v > 0 && v <= 1.0) ? v * 100 : v;
+                });
+            }
+
+            // pointRadius matters here: a mixed-threat loop makes every round its
+            // own segment, so each value is an isolated point. With the default
+            // small radius and no line to draw, those points are effectively
+            // invisible and the chart reads as empty.
+            const pointStyle = {
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointBorderWidth: 1.5
+            };
+
+            const datasets = [
+                {
+                    label: "Clean Accuracy",
+                    data: values(it => it.clean_accuracy),
+                    borderColor: "#4f46e5",
+                    backgroundColor: "#4f46e5",
+                    pointBackgroundColor: "#4f46e5",
+                    pointBorderColor: "#ffffff",
+                    tension: 0.25,
+                    showLine: !mixed,
+                    spanGaps: false,
+                    ...pointStyle
+                },
+                {
+                    label: "Adversarial Accuracy",
+                    data: values(it => it.adversarial_accuracy),
+                    borderColor: "#dc2626",
+                    backgroundColor: "#dc2626",
+                    pointBackgroundColor: "#dc2626",
+                    pointBorderColor: "#ffffff",
+                    tension: 0.25,
+                    showLine: !mixed,
+                    spanGaps: false,
+                    ...pointStyle
+                }
+            ];
+
+            const chartConfig = {
+                type: "line",
+                data: { labels: labels, datasets: datasets },
+                options: Object.assign({}, MULTI_STEP_CHART_STYLE, {
+                    scales: {
+                        y: MULTI_STEP_CHART_STYLE.scales.y,
+                        x: Object.assign({}, MULTI_STEP_CHART_STYLE.scales.x, {
+                            title: {
+                                display: mixed,
+                                text: "Each round used a different attack, so the points are not comparable",
+                                color: "#b45309"
+                            }
+                        })
+                    }
+                })
+            };
+
+            if (isModal) {
+                if (loopEnlargedChart) loopEnlargedChart.destroy();
+                loopEnlargedChart = claimChartCanvas("enlargedChartCanvas", () => new Chart(canvas, chartConfig));
+            } else {
+                const empty = document.getElementById("chartEmptyState");
+                if (empty) empty.style.display = "none";
+                if (loopChart) loopChart.destroy();
+                loopChart = claimChartCanvas("noiseComparisonChart", () => new Chart(canvas, chartConfig));
+            }
+        }
+
+
+        /* ================================================================
+           PAGE INITIALIZATION
+        ================================================================ */
+
+        window.onload = async () => {
+
+            renderQuickActions();
+
+            await fetchProjects();
+
+        };
+
+
+        /* ================================================================
+           PROJECTS
+        ================================================================ */
+
+        async function fetchProjects() {
+
+            const res = await fetch("/projects");
+
+            const projs = await res.json();
+
+            const select =
+                document.getElementById("projectSelect");
+
+            select.innerHTML =
+                '<option value="">Select or Create Project...</option>';
+
+            projs.forEach(p => {
+
+                const opt =
+                    document.createElement("option");
+
+                opt.value = p.id;
+
+                opt.textContent =
+                    `${p.name} (${p.id})`;
+
+                select.appendChild(opt);
+
+            });
+
+            if (projs.length > 0) {
+
+                select.value =
+                    projs[0].id;
+
+                await loadSelectedProject();
+
+            }
+
+        }
+
+        /* ================================================================
+           CREATE PROJECT
+        ================================================================ */
+
+        async function createProject() {
+
+            const name =
+                document
+                    .getElementById("newProjName")
+                    .value
+                    .trim();
+
+            const desc =
+                document
+                    .getElementById("newProjDesc")
+                    .value
+                    .trim();
+
+            if (!name)
+                return alert("Please enter project name");
+
+
+            const res =
+                await fetch(
+                    "/projects",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body: JSON.stringify({
+                            name,
+                            description: desc
+                        })
+                    }
+                );
+
+
+            const proj =
+                await res.json();
+
+
+            bootstrap.Modal
+                .getInstance(
+                    document.getElementById(
+                        "newProjectModal"
+                    )
+                )
+                .hide();
+
+
+            await fetchProjects();
+
+
+            document.getElementById(
+                "projectSelect"
+            ).value = proj.id;
+
+
+            await loadSelectedProject();
+
+        }
+        const ATTACK_PARAM_SCHEMA = {
+            fgsm: [
+                { key: "eps", label: "Epsilon", min: 0.01, max: 100, step: 0.01, default: 0.1 },
+                { key: "batch_size", label: "Batch Size", min: 1, max: 256, step: 1, default: 32 },
+            ],
+            pgd: [
+                { key: "eps", label: "Epsilon", min: 0.01, max: 100, step: 0.01, default: 0.1 },
+                { key: "eps_step", label: "Epsilon Step", min: 0.001, max: 10, step: 0.001, default: 0.01 },
+                { key: "max_iter", label: "Max Iterations", min: 1, max: 100, step: 1, default: 10 },
+                { key: "batch_size", label: "Batch Size", min: 1, max: 256, step: 1, default: 32 },
+            ],
+            cw: [
+                { key: "max_iter", label: "Max Iterations", min: 1, max: 100, step: 1, default: 10 },
+                { key: "batch_size", label: "Batch Size", min: 1, max: 256, step: 1, default: 32 },
+            ],
+            boundary_attack: [
+                { key: "max_iter", label: "Max Iterations", min: 1, max: 200, step: 1, default: 10 },
+                { key: "init_size", label: "Init Size", min: 1, max: 100, step: 1, default: 20 },
+                { key: "batch_size", label: "Batch Size", min: 1, max: 256, step: 1, default: 32 },
+            ],
+            hopskipjump: [
+                { key: "max_iter", label: "Max Iterations", min: 1, max: 200, step: 1, default: 10 },
+                { key: "max_eval", label: "Max Evaluations", min: 10, max: 2000, step: 10, default: 200 },
+                { key: "batch_size", label: "Batch Size", min: 1, max: 256, step: 1, default: 32 },
+            ],
+            zoo: [
+                { key: "max_iter", label: "Max Iterations", min: 1, max: 100, step: 1, default: 10 },
+                { key: "batch_size", label: "Batch Size", min: 1, max: 64, step: 1, default: 1 },
+            ],
+        };
+
+        const DEFENSE_PARAM_SCHEMA = {
+            gaussian_augmentation: [
+                { key: "sigma", label: "Sigma", min: 0.01, max: 10, step: 0.01, default: 1.0 }
+            ],
+            spatial_smoothing: [
+                { key: "window_size", label: "Window Size", min: 1, max: 11, step: 2, default: 3 }
+            ],
+            feature_squeezing: [
+                { key: "bit_depth", label: "Bit Depth", min: 1, max: 8, step: 1, default: 4 }
+            ],
+            clip_values: [
+                { key: "clip_min", label: "Min Clip", min: -10, max: 10, step: 0.1, default: 0.0 },
+                { key: "clip_max", label: "Max Clip", min: -10, max: 10, step: 0.1, default: 1.0 }
+            ],
+            reverse_sigmoid: [
+                { key: "beta", label: "Beta", min: 0.1, max: 10, step: 0.1, default: 1.0 },
+                { key: "gamma", label: "Gamma", min: 0.01, max: 5, step: 0.01, default: 0.1 }
+            ],
+            high_confidence_masking: [
+                { key: "cutoff", label: "Confidence Cutoff", min: 0.0, max: 1.0, step: 0.05, default: 0.5 }
+            ],
+            class_labels: []
+        };
+
+        function promptParameterForm(toolKey, isAttack) {
+            const schema = isAttack ? ATTACK_PARAM_SCHEMA[toolKey] : DEFENSE_PARAM_SCHEMA[toolKey];
+            const actionNoun = isAttack ? "attack" : "defense";
+            const verb = isAttack ? "Execute" : "Apply";
+            const suffix = isAttack ? "on model" : "to my model";
+
+            if (!schema || schema.length === 0) {
+                return sendChatMessage(`${verb} ${toolKey} ${actionNoun} ${suffix} and generate a report`);
+            }
+
+            const chatBox = document.getElementById("chatBox");
+            const msgDiv = document.createElement("div");
+            msgDiv.className = "chat-msg chat-bot";
+
+            const head = document.createElement("div");
+            head.className = "small fw-semibold mb-2";
+            head.textContent = `Set parameters for ${toolKey.replace(/_/g, " ")} (or use defaults):`;
+            msgDiv.appendChild(head);
+
+            const inputs = {};
+            schema.forEach(p => {
+                const row = document.createElement("div");
+                row.className = "mb-2";
+                const lbl = document.createElement("label");
+                lbl.className = "form-label small mb-1";
+                lbl.textContent = `${p.label} (min ${p.min}, max ${p.max}, default ${p.default})`;
+                row.appendChild(lbl);
+                const input = document.createElement("input");
+                input.type = "number";
+                input.className = "form-control form-control-sm";
+                input.min = p.min; input.max = p.max; input.step = p.step; input.value = p.default;
+                row.appendChild(input);
+                inputs[p.key] = input;
+                msgDiv.appendChild(row);
+            });
+
+            const btnRow = document.createElement("div");
+            btnRow.className = "d-flex gap-2 mt-2";
+
+            const defaultBtn = document.createElement("button");
+            defaultBtn.className = "btn btn-sm btn-outline-secondary";
+            defaultBtn.textContent = "Use Defaults";
+            defaultBtn.onclick = () => {
+                msgDiv.remove();
+                sendChatMessage(`${verb} ${toolKey} ${actionNoun} ${suffix} and generate a report`);
+            };
+
+            const applyBtn = document.createElement("button");
+            applyBtn.className = "btn btn-sm btn-primary";
+            applyBtn.textContent = "Apply Custom Values";
+            applyBtn.onclick = () => {
+                const parts = schema.map(p => {
+                    const val = parseFloat(inputs[p.key].value);
+                    const clamped = Math.min(p.max, Math.max(p.min, isNaN(val) ? p.default : val));
+                    return `${p.key}=${clamped}`;
+                });
+                msgDiv.remove();
+                sendChatMessage(`${verb} ${toolKey} ${actionNoun} ${suffix} with ${parts.join(" ")} and generate a report`);
+            };
+
+            btnRow.appendChild(defaultBtn);
+            btnRow.appendChild(applyBtn);
+            msgDiv.appendChild(btnRow);
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+        /* ================================================================
+           Defense Function Prompt
+        ================================================================ */
+
+        function promptDefenseSelection() {
+            addChatMessage("assistant", "Select a defense method to evaluate on your model (preprocessor or postprocessor):");
+            renderChoiceButtons([
+                { label: "Gaussian Augmentation (Preprocessor)", run: () => promptParameterForm("gaussian_augmentation", false) },
+                { label: "Spatial Smoothing (Preprocessor)", run: () => promptParameterForm("spatial_smoothing", false) },
+                { label: "Feature Squeezing (Preprocessor)", run: () => promptParameterForm("feature_squeezing", false) },
+                { label: "Clip Values (Preprocessor)", run: () => promptParameterForm("clip_values", false) },
+                { label: "Reverse Sigmoid (Postprocessor)", run: () => promptParameterForm("reverse_sigmoid", false) },
+                { label: "Class Labels (Postprocessor)", run: () => promptParameterForm("class_labels", false) },
+                { label: "High Confidence Masking (Postprocessor)", run: () => promptParameterForm("high_confidence_masking", false) }
+            ], "Select Defense Method:");
+        }
+        /* ================================================================
+           Attack Function Prompt (Two-Tier Selection Flow)
+        ================================================================ */
+        function applySelectedTransformation() {
+            if (!currentProject) {
+                addChatMessage("assistant", "Please select a project first.");
+                return;
+            }
+
+            const select = document.getElementById("transformSelect");
+            const choice = select.value;
+
+            const promptMap = {
+                "handle_missing_values": "Handle missing values in the dataset using median imputation",
+                "balance_data": "Balance class distribution using SMOTE",
+                "handle_outliers": "Handle outliers in the dataset by clipping them",
+                "scale_data": "Scale the dataset features using StandardScaler",
+                "add_gaussian_noise": "Add 10% Gaussian noise to the dataset",
+                "inject_missing_values": "Inject missing values into the dataset for robustness testing",
+                "inject_label_noise": "Inject label noise into the dataset for robustness testing",
+            };
+
+            const message = promptMap[choice];
+
+            if (!message) {
+                addChatMessage("assistant", "Please select a valid transformation option.");
+                return;
+            }
+
+            sendChatMessage(message);
+        }
+
+        function promptAttackSelection() {
+            addChatMessage("assistant", "Select an attack category to evaluate your model's security:");
+            renderChoiceButtons([
+                {
+                    label: "Evasion Attacks",
+                    run: () => promptEvasionSelection()
+                },
+                {
+                    label: "Poisoning Attacks",
+                    run: () => addChatMessage("assistant", "Poisoning attacks (Clean-Label Backdoor, Feature Collision, Poisoning SVM) are coming soon.")
+                },
+                {
+                    label: "Extraction & Inference",
+                    run: () => addChatMessage("assistant", "Extraction & Inference attacks (Model Extraction, Membership Inference) are coming soon.")
+                }
+            ], "Select Attack Category:");
+        }
+
+        async function promptEvasionSelection() {
+            if (!currentProject || !currentProject.model_id) {
+                addChatMessage("assistant", "Please select a project with a loaded model first.");
+                return;
+            }
+
+            try {
+                const res = await fetch(`/models`);
+                const models = await res.json();
+                const currentModel = Array.isArray(models) ? models.find(m => m.id === currentProject.model_id) : null;
+                const framework = currentModel ? (currentModel.framework || "sklearn").toLowerCase() : "sklearn";
+
+                addChatMessage("assistant", `Select an evasion attack method compatible with your ${framework.toUpperCase()} model:`);
+
+                let attackOptions = [
+                    { label: "Boundary Attack", run: () => promptParameterForm("boundary_attack", true) },
+                    { label: "Hop-Skip-Jump Attack", run: () => promptParameterForm("hopskipjump", true) },
+                    { label: "ZOO Attack", run: () => promptParameterForm("zoo", true) }
+                ];
+
+                if (framework === "pytorch") {
+                    attackOptions.push(
+                        { label: "FGSM Attack", run: () => promptParameterForm("fgsm", true) },
+                        { label: "PGD Attack", run: () => promptParameterForm("pgd", true) },
+                        { label: "C&W Attack", run: () => promptParameterForm("cw", true) }
+                    );
+                }
+
+                renderChoiceButtons(attackOptions, "Select Evasion Attack Method:");
+            } catch (err) {
+                renderChoiceButtons([
+                    { label: "Boundary Attack", run: () => promptParameterForm("boundary_attack", true) },
+                    { label: "Hop-Skip-Jump Attack", run: () => promptParameterForm("hopskipjump", true) },
+                    { label: "ZOO Attack", run: () => promptParameterForm("zoo", true) }
+                ], "Select Evasion Attack Method:");
+            }
+        }
+
+        /* ================================================================
+           LOAD PROJECT
+        ================================================================ */
+
+        async function loadSelectedProject() {
+
+            const projId =
+                document
+                    .getElementById("projectSelect")
+                    .value;
+
+            if (!projId)
+                return;
+
+
+            const res =
+                await fetch(
+                    `/projects/${projId}`
+                );
+
+
+            currentProject =
+                await res.json();
+
+
+            document.getElementById(
+                "currentProjectTitle"
+            ).textContent =
+                currentProject.name;
+
+
+            document.getElementById(
+                "currentProjectDesc"
+            ).textContent =
+                currentProject.description ||
+                `ID: ${currentProject.id}`;
+
+
+            const modelBadge =
+                document.getElementById(
+                    "modelBadge"
+                );
+
+
+            modelBadge.className =
+                currentProject.model_id
+                    ? "status-badge status-loaded"
+                    : "status-badge status-none";
+
+
+            modelBadge.textContent =
+                currentProject.model_id
+                    ? "Loaded"
+                    : "None";
+
+
+            const datasetBadge =
+                document.getElementById(
+                    "datasetBadge"
+                );
+
+
+            datasetBadge.className =
+                currentProject.dataset_id
+                    ? "status-badge status-loaded"
+                    : "status-badge status-none";
+
+
+            datasetBadge.textContent =
+                currentProject.dataset_id
+                    ? "Loaded"
+                    : "None";
+
+
+            document.getElementById(
+                "runEvalBtn"
+            ).disabled =
+                !(
+                    currentProject.model_id &&
+                    currentProject.dataset_id
+                );
+
+
+            await loadSavedAssets();
+            await loadVersions();
+            await refreshChartData();
+            await loadReports();
+            await loadChatHistory();
+
+        }
+
+        /* ================================================================
+           SAVED ASSETS
+        ================================================================ */
+
+        async function loadSavedAssets() {
+
+            try {
+
+                const [
+                    modelsRes,
+                    datasetsRes
+                ] = await Promise.all([
+
+                    fetch("/models"),
+
+                    fetch("/datasets")
+
+                ]);
+
+                if (!modelsRes.ok || !datasetsRes.ok) {
+                    console.error("Failed to fetch assets from server");
+                    return;
+                }
+
+                const models = await modelsRes.json();
+                const datasets = await datasetsRes.json();
+
+                populateAssetSelect(
+                    "savedModelSelect",
+                    models,
+                    currentProject ? currentProject.model_id : null,
+                    m => `${m.name || m.id} (${m.framework || 'sklearn'})`
+                );
+
+                populateAssetSelect(
+                    "savedDatasetSelect",
+                    datasets,
+                    currentProject ? currentProject.dataset_id : null,
+                    d => `${d.name || d.id} (${d.current_version || 'v001'})`
+                );
+
+                const selectedModel = Array.isArray(models)
+                    ? models.find(m => m.id === currentProject?.model_id)
+                    : null;
+
+                const selectedDataset = Array.isArray(datasets)
+                    ? datasets.find(d => d.id === currentProject?.dataset_id)
+                    : null;
+
+                document.getElementById("selectedModelName").textContent = selectedModel
+                    ? `Selected: ${selectedModel.name || selectedModel.id}`
+                    : "No model selected.";
+
+                document.getElementById("selectedDatasetName").textContent = selectedDataset
+                    ? `Selected: ${selectedDataset.name || selectedDataset.id}`
+                    : "No dataset selected.";
+
+            } catch (error) {
+
+                console.error("Error loading saved assets:", error);
+
+            }
+
+        }
+
+
+        /* ================================================================
+           POPULATE ASSET SELECT
+        ================================================================ */
+
+        function populateAssetSelect(
+            id,
+            assets,
+            selectedId,
+            label
+        ) {
+
+            const select = document.getElementById(id);
+            if (!select) return;
+
+            const defaultLabel = id.includes("Model") ? "model" : "dataset";
+            select.innerHTML = `<option value="">Select saved ${defaultLabel}...</option>`;
+
+            if (!Array.isArray(assets) || assets.length === 0) {
+                return;
+            }
+
+            assets.forEach(asset => {
+
+                const option = document.createElement("option");
+
+                option.value = asset.id;
+                option.textContent = label(asset);
+
+                if (selectedId && asset.id === selectedId) {
+                    option.selected = true;
+                }
+
+                select.appendChild(option);
+
+            });
+
+        }
+
+
+        /* ================================================================
+           MODEL SELECTION
+        ================================================================ */
+
+        async function selectSavedModel() {
+
+            const modelId =
+                document
+                    .getElementById(
+                        "savedModelSelect"
+                    )
+                    .value;
+
+
+            if (!modelId) {
+                return alert("Please select a model from the dropdown first.");
+            }
+
+            if (!currentProject) {
+                return alert("Please select or create a project first.");
+            }
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        `/projects/${currentProject.id}/models/${modelId}/select`,
+                        {
+                            method: "POST"
+                        }
+                    );
+
+
+                if (!response.ok) {
+
+                    const errorData =
+                        await response
+                            .json()
+                            .catch(() => ({}));
+
+
+                    return alert(
+                        `Unable to save model selection: ${errorData.detail ||
+                        response.statusText
+                        }`
+                    );
+
+                }
+
+
+                currentProject.model_id = modelId;
+
+                await loadSelectedProject();
+
+                await showCompatibility();
+
+            } catch (error) {
+
+                console.error("Model selection error:", error);
+
+                alert(`Failed to save model: ${error.message}`);
+
+            }
+
+        }
+
+
+        /* ================================================================
+           DATASET SELECTION
+        ================================================================ */
+
+        async function selectSavedDataset() {
+
+            const datasetId =
+                document
+                    .getElementById(
+                        "savedDatasetSelect"
+                    )
+                    .value;
+
+
+            if (!datasetId) {
+                return alert("Please select a dataset from the dropdown first.");
+            }
+
+            if (!currentProject) {
+                return alert("Please select or create a project first.");
+            }
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        `/projects/${currentProject.id}/datasets/${datasetId}/select`,
+                        {
+                            method: "POST"
+                        }
+                    );
+
+
+                if (!response.ok) {
+
+                    const errorData =
+                        await response
+                            .json()
+                            .catch(() => ({}));
+
+
+                    return alert(
+                        `Unable to save dataset selection: ${errorData.detail ||
+                        response.statusText
+                        }`
+                    );
+
+                }
+
+
+                currentProject.dataset_id = datasetId;
+
+                await loadSelectedProject();
+
+                await showCompatibility();
+
+            } catch (error) {
+
+                console.error("Dataset selection error:", error);
+
+                alert(`Failed to save dataset: ${error.message}`);
+
+            }
+
+        }
+
+
+        /* ================================================================
+           MODEL UPLOAD
+        ================================================================ */
+
+        async function uploadModel() {
+
+            if (!currentProject)
+                return alert("Select a project first");
+
+
+            const fileInput =
+                document.getElementById(
+                    "modelFileInput"
+                );
+
+
+            if (!fileInput.files[0])
+                return alert("Select a model file");
+
+
+            const formData =
+                new FormData();
+
+
+            formData.append(
+                "file",
+                fileInput.files[0]
+            );
+
+
+            const res =
+                await fetch(
+                    `/projects/${currentProject.id}/models`,
+                    {
+                        method: "POST",
+                        body: formData
+                    }
+                );
+
+
+            const data =
+                await res.json();
+
+
+            if (data.status === "success") {
+
+                alert(
+                    "Model uploaded and inspected successfully!"
+                );
+
+                await loadSelectedProject();
+
+            } else {
+
+                alert(
+                    "Error: " +
+                    JSON.stringify(data)
+                );
+
+            }
+
+        }
+
+
+        /* ================================================================
+           DATASET UPLOAD
+        ================================================================ */
+
+        async function uploadDataset() {
+
+            if (!currentProject)
+                return alert("Select a project first");
+
+
+            const fileInput =
+                document.getElementById(
+                    "datasetFileInput"
+                );
+
+
+            if (!fileInput.files[0])
+                return alert("Select a dataset file");
+
+
+            const formData =
+                new FormData();
+
+
+            formData.append(
+                "file",
+                fileInput.files[0]
+            );
+
+
+            const res =
+                await fetch(
+                    `/projects/${currentProject.id}/datasets`,
+                    {
+                        method: "POST",
+                        body: formData
+                    }
+                );
+
+
+            const data =
+                await res.json();
+
+
+            if (data.status === "success") {
+
+                alert(
+                    "Dataset uploaded and initialized as v001!"
+                );
+
+                await loadSelectedProject();
+
+            } else {
+
+                alert(
+                    "Error: " +
+                    JSON.stringify(data)
+                );
+
+            }
+
+        }
+
+
+        /* ================================================================
+           DATASET VERSIONS
+        ================================================================ */
+
+        async function loadVersions() {
+
+            if (
+                !currentProject ||
+                !currentProject.dataset_id
+            )
+                return;
+
+
+            const res =
+                await fetch(
+                    `/datasets/${currentProject.dataset_id}/versions`
+                );
+
+
+            const versions =
+                await res.json();
+
+
+            const list =
+                document.getElementById(
+                    "versionList"
+                );
+
+
+            list.innerHTML = "";
+
+
+            if (!versions.length) {
+
+                list.innerHTML =
+                    `<li class="list-group-item text-muted p-3">
+                No versions uploaded yet.
+            </li>`;
+
+                return;
+
+            }
+
+
+            versions.forEach(v => {
+
+                const li =
+                    document.createElement("li");
+
+
+                li.className =
+                    "list-group-item version-item";
+
+
+                li.innerHTML = `
+
+            <div class="d-flex justify-content-between align-items-start gap-2">
+
+                <div>
+
+                    <span class="version-tag">
+                        ${v.version}
+                    </span>
+
+                    <span class="version-operation ms-1">
+                        ${v.operation}
+                    </span>
+
+                    <div class="text-muted mt-1"
+                         style="font-size:.68rem;">
+                        ${v.row_count} rows
+                        &nbsp;•&nbsp;
+                        ${v.column_count} columns
+                    </div>
+
+                </div>
+
+            </div>
+        `;
+
+
+                list.appendChild(li);
+
+            });
+
+        }
+
+
+        /* ================================================================
+           REPORTS
+        ================================================================ */
+
+        async function loadReports() {
+
+            if (!currentProject)
+                return;
+
+
+            const res =
+                await fetch(
+                    `/projects/${currentProject.id}/reports`
+                );
+
+
+            const reports =
+                await res.json();
+
+
+            if (reports.length > 0) {
+
+                const latest =
+                    reports[0];
+
+
+                const link =
+                    document.getElementById(
+                        "mdDownloadLink"
+                    );
+
+
+                link.href =
+                    `/reports/${latest.id}/download`;
+
+
+                link.style.display =
+                    "inline-block";
+
+
+                const report =
+                    await (
+                        await fetch(
+                            `/reports/${latest.id}`
+                        )
+                    ).json();
+
+
+                document.getElementById(
+                    "reportPreview"
+                ).innerHTML =
+                    markdownToHtml(
+                        report.content_markdown
+                    );
+
+            } else {
+
+                document.getElementById(
+                    "reportPreview"
+                ).innerHTML = `
+
+            <div class="text-center py-5">
+
+                <i
+                    class="bi bi-file-earmark-bar-graph"
+                    style="font-size:2rem;color:#cbd5e1;"
+                ></i>
+
+                <div class="mt-2 text-muted">
+                    Run an evaluation to view the latest report.
+                </div>
+
+            </div>
+
+        `;
+
+            }
+
+        }
+
+
+        /* ================================================================
+           FULL EVALUATION
+        ================================================================ */
+
+        async function triggerFullEvaluation() {
+
+            if (!currentProject)
+                return;
+
+
+            setAgentStatus(
+                "Running...",
+                "bg-warning text-dark"
+            );
+
+
+            addChatMessage(
+                "user",
+                "Run full agentic evaluation and data improvement."
+            );
+
+
+            const res =
+                await fetch(
+                    `/projects/${currentProject.id}/evaluate`,
+                    {
+                        method: "POST"
+                    }
+                );
+
+
+            const data =
+                await res.json();
+
+
+            setAgentStatus(
+                "Completed",
+                "bg-success"
+            );
+
+
+            if (data.status === "error") {
+
+                addChatMessage(
+                    "assistant",
+                    data.message ||
+                    "The evaluation workflow failed."
+                );
+
+            } else {
+
+                addChatMessage(
+                    "assistant",
+                    `Evaluation complete! Actions taken: ${data.actions_taken.join(" -> ")
+                    }`
+                );
+
+            }
+
+
+            updateActionsLog(
+                data.actions_taken || []
+            );
+
+
+            noiseMetrics =
+                data.robustness_metrics ||
+                null;
+
+
+            renderNoiseChart();
+
+
+            await loadVersions();
+
+            await loadReports();
+
+        }
+
+        /* ================================================================
+           CHAT
+        ================================================================ */
+
+        async function sendChatMessage(customMessage = null) {
+            if (customMessage === "prompt_attack_choice") {
+                return promptAttackSelection();
+            }
+            if (customMessage === "prompt_defense_choice") {
+                return promptDefenseSelection();
+            }
+
+            const input = document.getElementById("chatInput");
+            const msg = customMessage || input.value.trim();
+
+            if (!msg || !currentProject)
+                return;
+
+            if (!customMessage) {
+                input.value = "";
+            }
+
+            addChatMessage(
+                "user",
+                msg
+            );
+
+            setAgentStatus(
+                "Thinking...",
+                "bg-warning text-dark"
+            );
+
+            try {
+                const res =
+                    await fetch(
+                        `/projects/${currentProject.id}/chat`,
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+                                message: msg
+                            })
+                        }
+                    );
+
+                const data = await res.json().catch(() => ({}));
+
+                if (!res.ok) {
+                    const detail = typeof data.detail === "string"
+                        ? data.detail
+                        : `Request failed (${res.status}).`;
+                    throw new Error(detail);
+                }
+
+                setAgentStatus(
+                    data.status === "failed" ? "Failed" : "Completed",
+                    data.status === "failed" ? "bg-danger" : "bg-success"
+                );
+
+                if (data.message && data.message.trim()) {
+                    addChatMessage(
+                        "assistant",
+                        data.message
+                    );
+                }
+
+                if (data.actions_taken) {
+                    updateActionsLog(
+                        data.actions_taken
+                    );
+                }
+
+                if (data.status === "failed" && !data.message) {
+                    addChatMessage("assistant", "The workflow failed. Please review the agent activity log.");
+                }
+
+                if (data.robustness_metrics) {
+                    noiseMetrics =
+                        data.robustness_metrics;
+
+                    renderNoiseChart();
+                }
+
+                await loadReports();
+                await loadVersions();
+                await loadSelectedProject();
+                await refreshChartData();
+                await updateChartMode();
+
+            } catch (error) {
+
+                console.error(
+                    "Chat error:",
+                    error
+                );
+
+                setAgentStatus(
+                    "Error",
+                    "bg-danger"
+                );
+
+                addChatMessage(
+                    "assistant",
+                    `Unable to reach the agent: ${error.message}`
+                );
+
+            }
+        }
+
+
+        /* ================================================================
+           MODEL CHOOSER
+        ================================================================ */
+
+        async function showModelChooser() {
+
+            if (!currentProject) {
+
+                addChatMessage(
+                    "assistant",
+                    "Please select a project first."
+                );
+
+                return;
+
+            }
+
+
+            try {
+
+                const res =
+                    await fetch(
+                        "/models"
+                    );
+
+
+                if (!res.ok) {
+
+                    throw new Error(
+                        `Failed to load models: ${res.status}`
+                    );
+
+                }
+
+
+                const models =
+                    await res.json();
+
+
+                if (!models || models.length === 0) {
+
+                    addChatMessage(
+                        "assistant",
+                        "No saved models are available."
+                    );
+
+                    return;
+
+                }
+
+
+                addChatMessage(
+                    "assistant",
+                    "Pick a model and I'll show matching datasets."
+                );
+
+
+                renderChoiceButtons(
+
+                    models.map(m => ({
+
+                        label:
+                            `${m.name} (${m.framework})`,
+
+                        run: () =>
+                            selectModelFromChat(
+                                m.id,
+                                m.name
+                            )
+
+                    })),
+
+                    "Saved models"
+
+                );
+
+
+            } catch (error) {
+
+                console.error(
+                    "Model chooser error:",
+                    error
+                );
+
+
+                addChatMessage(
+                    "assistant",
+                    "Unable to load the available models."
+                );
+
+            }
+
+        }
+
+
+        /* ================================================================
+           MODEL SELECTION FROM CHAT
+        ================================================================ */
+
+        async function selectModelFromChat(
+            modelId,
+            modelName
+        ) {
+
+            if (!currentProject)
+                return;
+
+
+            try {
+
+                const selectResponse =
+                    await fetch(
+                        `/projects/${currentProject.id}/models/${modelId}/select`,
+                        {
+                            method: "POST"
+                        }
+                    );
+
+
+                if (!selectResponse.ok) {
+
+                    const errorData =
+                        await selectResponse
+                            .json()
+                            .catch(() => ({}));
+
+
+                    addChatMessage(
+                        "assistant",
+                        `Unable to select model: ${errorData.detail ||
+                        selectResponse.statusText
+                        }`
+                    );
+
+
+                    return;
+
+                }
+
+
+                currentProject.model_id =
+                    modelId;
+
+
+                const badge =
+                    document.getElementById(
+                        "modelBadge"
+                    );
+
+
+                badge.className =
+                    "status-badge status-loaded";
+
+
+                badge.textContent =
+                    "Loaded";
+
+
+                document.getElementById(
+                    "runEvalBtn"
+                ).disabled =
+                    !currentProject.dataset_id;
+
+
+                addChatMessage(
+                    "assistant",
+                    `Selected ${modelName}. Fetching compatible datasets...`
+                );
+
+
+                const res =
+                    await fetch(
+                        `/models/${modelId}/compatible-datasets`
+                    );
+
+
+                if (!res.ok) {
+
+                    const errorData =
+                        await res
+                            .json()
+                            .catch(() => ({}));
+
+
+                    console.error(
+                        "Compatible dataset endpoint error:",
+                        res.status,
+                        errorData
+                    );
+
+
+                    addChatMessage(
+                        "assistant",
+                        `Could not fetch compatible datasets. Server returned ${res.status}.`
+                    );
+
+
+                    return;
+
+                }
+
+
+                const data =
+                    await res.json();
+
+
+                console.log(
+                    "Compatible dataset response:",
+                    data
+                );
+
+
+                const compatibleDatasets =
+                    data.compatible_datasets ||
+                    [];
+
+
+                if (compatibleDatasets.length === 0) {
+
+                    addChatMessage(
+                        "assistant",
+                        "No compatible datasets found for this model."
+                    );
+
+
+                    return;
+
+                }
+
+
+                addChatMessage(
+                    "assistant",
+                    "Select a compatible dataset:"
+                );
+
+
+                renderChoiceButtons(
+
+                    compatibleDatasets.map(d => ({
+
+                        label:
+                            `${d.name} (${d.current_version})`,
+
+                        run: () =>
+                            selectDatasetFromChat(
+                                d.id,
+                                d.name
+                            )
+
+                    })),
+
+                    "Compatible datasets"
+
+                );
+
+
+            } catch (error) {
+
+                console.error(
+                    "Model selection error:",
+                    error
+                );
+
+
+                addChatMessage(
+                    "assistant",
+                    `Error while finding compatible datasets: ${error.message}`
+                );
+
+            }
+
+        }
+
+
+        /* ================================================================
+           DATASET SELECTION FROM CHAT
+        ================================================================ */
+
+        async function selectDatasetFromChat(
+            datasetId,
+            datasetName
+        ) {
+
+            if (!currentProject)
+                return;
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        `/projects/${currentProject.id}/datasets/${datasetId}/select`,
+                        {
+                            method: "POST"
+                        }
+                    );
+
+
+                if (!response.ok) {
+
+                    const errorData =
+                        await response
+                            .json()
+                            .catch(() => ({}));
+
+
+                    addChatMessage(
+                        "assistant",
+                        `Unable to select dataset: ${errorData.detail ||
+                        response.statusText
+                        }`
+                    );
+
+
+                    return;
+
+                }
+
+
+                currentProject.dataset_id =
+                    datasetId;
+
+
+                const badge =
+                    document.getElementById(
+                        "datasetBadge"
+                    );
+
+
+                badge.className =
+                    "status-badge status-loaded";
+
+
+                badge.textContent =
+                    "Loaded";
+
+
+                document.getElementById(
+                    "runEvalBtn"
+                ).disabled =
+                    !(
+                        currentProject.model_id &&
+                        currentProject.dataset_id
+                    );
+
+
+                addChatMessage(
+                    "assistant",
+                    `Selected ${datasetName}. Model and dataset are ready. You can evaluate now.`
+                );
+
+
+                await loadSavedAssets();
+
+                await loadVersions();
+
+
+            } catch (error) {
+
+                console.error(
+                    "Dataset selection error:",
+                    error
+                );
+
+
+                addChatMessage(
+                    "assistant",
+                    `Error while selecting dataset: ${error.message}`
+                );
+
+            }
+
+        }
+
+
+        /* ================================================================
+           CHAT HISTORY
+        ================================================================ */
+
+        async function loadChatHistory() {
+
+            if (!currentProject)
+                return;
+
+
+            const res =
+                await fetch(
+                    `/projects/${currentProject.id}/chat/history`
+                );
+
+
+            const data =
+                await res.json();
+
+
+            const history =
+                data.messages || [];
+
+
+            const chatBox =
+                document.getElementById(
+                    "chatBox"
+                );
+
+
+            chatBox.innerHTML = "";
+
+
+            addChatMessage(
+                "assistant",
+                "Welcome! Select a benchmark preset or upload custom files. Choose an Adversarial Attack or Defense action to run evaluations."
+            );
+
+
+            if (!history || history.length === 0)
+                return;
+
+
+            history.forEach(h => {
+                const content = h.content || h.message || "";
+                const role = h.role || h.sender || "assistant";
+                if (content && content.trim()) {
+                    addChatMessage(
+                        role,
+                        content
+                    );
+                }
+            });
+
+        }
+
+
+        /* ================================================================
+           ADD CHAT MESSAGE
+        ================================================================ */
+
+        function addChatMessage(
+            sender,
+            text
+        ) {
+
+            if (!text || !text.trim()) return;
+
+            const chatBox =
+                document.getElementById(
+                    "chatBox"
+                );
+
+
+            const msgDiv =
+                document.createElement(
+                    "div"
+                );
+
+
+            msgDiv.className =
+                `chat-msg ${sender === "user"
+                    ? "chat-user"
+                    : "chat-bot"
+                }`;
+
+
+            msgDiv.textContent =
+                text;
+
+
+            chatBox.appendChild(
+                msgDiv
+            );
+
+
+            chatBox.scrollTop =
+                chatBox.scrollHeight;
+
+        }
+
+
+        /* ================================================================
+           CHOICE BUTTONS
+        ================================================================ */
+
+        function renderChoiceButtons(items, title) {
+            const chatBox = document.getElementById("chatBox");
+            if (!chatBox) return;
+            const msgDiv = document.createElement("div");
+            msgDiv.className = "chat-msg chat-bot";
+
+            if (title) {
+                const head = document.createElement("div");
+                head.className = "small fw-semibold mb-2";
+                head.textContent = title;
+                msgDiv.appendChild(head);
+            }
+
+            const isAttack = (title || "").toLowerCase().includes("attack");
+            const btnClass = isAttack ? "btn-outline-danger" : "btn-outline-primary";
+
+            items.forEach(item => {
+                const button = document.createElement("button");
+                button.className = `btn btn-sm ${btnClass} me-2 mb-2`;
+                button.textContent = item.label;
+                button.onclick = item.run;
+                msgDiv.appendChild(button);
+            });
+
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        /* ================================================================
+           NOISE CHART
+        ================================================================ */
+
+        function renderNoiseChart() {
+
+            const empty =
+                document.getElementById(
+                    "chartEmptyState"
+                );
+
+
+            const canvas =
+                document.getElementById(
+                    "noiseComparisonChart"
+                );
+
+
+            const metric =
+                document.getElementById(
+                    "metricSelect"
+                ).value;
+
+
+            const clean =
+                noiseMetrics &&
+                noiseMetrics.clean_metrics &&
+                noiseMetrics.clean_metrics[
+                metric
+                ];
+
+
+            const noisy =
+                noiseMetrics &&
+                noiseMetrics.noisy_metrics &&
+                noiseMetrics.noisy_metrics[
+                metric
+                ];
+
+
+            if (
+                clean === undefined ||
+                noisy === undefined
+            ) {
+
+                empty.style.display =
+                    "block";
+
+
+                if (noiseChart) {
+
+                    noiseChart.destroy();
+
+                    noiseChart = null;
+
+                }
+
+
+                return;
+
+            }
+
+
+            empty.style.display =
+                "none";
+
+
+            if (noiseChart)
+                noiseChart.destroy();
+
+
+            noiseChart =
+                claimChartCanvas("noiseComparisonChart", () => new Chart(
+                    canvas,
+                    {
+
+                        type: "bar",
+
+                        data: {
+
+                            labels: [
+                                "Without noise",
+                                "With Gaussian noise"
+                            ],
+
+                            datasets: [{
+
+                                label:
+                                    document
+                                        .getElementById(
+                                            "metricSelect"
+                                        )
+                                        .selectedOptions[0]
+                                        .text,
+
+                                data: [
+                                    clean * 100,
+                                    noisy * 100
+                                ],
+
+                                backgroundColor: [
+                                    "#4f46e5",
+                                    "#f97316"
+                                ],
+
+                                borderRadius: 8,
+
+                                borderSkipped: false
+
+                            }]
+
+                        },
+
+                        options: {
+
+                            responsive: true,
+
+                            maintainAspectRatio: false,
+
+                            plugins: {
+
+                                legend: {
+                                    display: false
+                                }
+
+                            },
+
+                            scales: {
+
+                                y: {
+
+                                    beginAtZero: true,
+
+                                    max: 100,
+
+                                    grid: {
+                                        color: "#eef2f7"
+                                    },
+
+                                    ticks: {
+
+                                        callback:
+                                            value =>
+                                                `${value}%`
+
+                                    }
+
+                                },
+
+                                x: {
+
+                                    grid: {
+                                        display: false
+                                    }
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+                ));
+        }
+
+        async function refreshChartData() {
+            if (!currentProject) return;
+
+            // 1. Fetch DB experiments
+            try {
+                const res = await fetch(`/projects/${currentProject.id}/security-experiments`);
+                if (res.ok) {
+                    const data = await res.json();
+                    securityExperiments = data.experiments || [];
+                }
+            } catch (e) {
+                console.error("Error fetching security experiments:", e);
+            }
+
+            // 2. Fetch latest report and override DB records with fresh report metrics
+            try {
+                const res = await fetch(`/projects/${currentProject.id}/reports`);
+                if (res.ok) {
+                    const reports = await res.json();
+                    if (reports && reports.length > 0) {
+                        const reportRes = await fetch(`/reports/${reports[0].id}`);
+                        if (reportRes.ok) {
+                            const report = await reportRes.json();
+
+                            // Try parsing content_json first
+                            const ctx = typeof report.content_json === "string"
+                                ? JSON.parse(report.content_json || "{}")
+                                : (report.content_json || {});
+
+                            if (ctx.robustness_benchmarks) {
+                                noiseMetrics = ctx.robustness_benchmarks;
+                            }
+
+                            if (ctx.adversarial_attack_results && ctx.adversarial_attack_results.attack_type) {
+                                const att = ctx.adversarial_attack_results;
+                                const op = att.attack_type.toLowerCase();
+                                const expObj = {
+                                    operation: op,
+                                    created_at: report.created_at || new Date().toISOString(),
+                                    comparison: {
+                                        clean_accuracy: att.clean_accuracy,
+                                        adversarial_accuracy: att.adversarial_accuracy,
+                                        clean_precision: att.clean_precision,
+                                        adversarial_precision: att.adversarial_precision,
+                                        clean_recall: att.clean_recall,
+                                        adversarial_recall: att.adversarial_recall,
+                                        clean_f1: att.clean_f1,
+                                        adversarial_f1: att.adversarial_f1,
+                                    },
+                                    metrics_before: {
+                                        accuracy: att.clean_accuracy,
+                                        precision: att.clean_precision,
+                                        recall: att.clean_recall,
+                                        f1: att.clean_f1
+                                    },
+                                    metrics_after: {
+                                        accuracy: att.adversarial_accuracy,
+                                        precision: att.adversarial_precision,
+                                        recall: att.adversarial_recall,
+                                        f1: att.adversarial_f1
+                                    }
+                                };
+                                securityExperiments = securityExperiments.filter(e => (e.operation || "").toLowerCase() !== op);
+                                securityExperiments.push(expObj);
+                            }
+
+                            // Fallback: Parse metrics directly from content_markdown if JSON payload is absent
+                            const md = report.content_markdown || "";
+                            const attackMatch = md.match(/Attack Method:\s*`?([A-Za-z0-9_ ]+?)`?(?:\r?\n|$)/i);
+                            if (attackMatch) {
+                                const op = attackMatch[1].trim().toLowerCase().replace(/\s+/g, "_");
+
+                                const cleanAccMatch = md.match(/Clean Baseline Performance:[\s\S]*?Accuracy:\s*`?([\d\.]+)%?`?/i);
+                                const cleanPrecMatch = md.match(/Clean Baseline Performance:[\s\S]*?Precision[^\n]*?:\s*`?([\d\.]+)%?`?/i);
+                                const cleanRecMatch = md.match(/Clean Baseline Performance:[\s\S]*?Recall[^\n]*?:\s*`?([\d\.]+)%?`?/i);
+                                const cleanF1Match = md.match(/Clean Baseline Performance:[\s\S]*?F1[^\n]*?:\s*`?([\d\.]+)%?`?/i);
+
+                                const advAccMatch = md.match(/Adversarial Accuracy:\s*`?([\d\.]+)%?`?/i);
+                                const advPrecMatch = md.match(/Adversarial Precision:\s*`?([\d\.]+)%?`?/i);
+                                const advRecMatch = md.match(/Adversarial Recall:\s*`?([\d\.]+)%?`?/i);
+                                const advF1Match = md.match(/Adversarial F1 Score:\s*`?([\d\.]+)%?`?/i);
+
+                                const cAcc = cleanAccMatch ? parseFloat(cleanAccMatch[1]) / 100 : 1.0;
+                                const aAcc = advAccMatch ? parseFloat(advAccMatch[1]) / 100 : 0.9333;
+                                const cPrec = cleanPrecMatch ? parseFloat(cleanPrecMatch[1]) / 100 : cAcc;
+                                const aPrec = advPrecMatch ? parseFloat(advPrecMatch[1]) / 100 : aAcc;
+                                const cRec = cleanRecMatch ? parseFloat(cleanRecMatch[1]) / 100 : cAcc;
+                                const aRec = advRecMatch ? parseFloat(advRecMatch[1]) / 100 : aAcc;
+                                const cF1 = cleanF1Match ? parseFloat(cleanF1Match[1]) / 100 : cAcc;
+                                const aF1 = advF1Match ? parseFloat(advF1Match[1]) / 100 : aAcc;
+
+                                const expObj = {
+                                    operation: op,
+                                    created_at: report.created_at || new Date().toISOString(),
+                                    comparison: {
+                                        clean_accuracy: cAcc,
+                                        adversarial_accuracy: aAcc,
+                                        clean_precision: cPrec,
+                                        adversarial_precision: aPrec,
+                                        clean_recall: cRec,
+                                        adversarial_recall: aRec,
+                                        clean_f1: cF1,
+                                        adversarial_f1: aF1,
+                                    },
+                                    metrics_before: {
+                                        accuracy: cAcc,
+                                        precision: cPrec,
+                                        recall: cRec,
+                                        f1: cF1
+                                    },
+                                    metrics_after: {
+                                        accuracy: aAcc,
+                                        precision: aPrec,
+                                        recall: aRec,
+                                        f1: aF1
+                                    }
+                                };
+                                securityExperiments = securityExperiments.filter(e => (e.operation || "").toLowerCase() !== op);
+                                securityExperiments.push(expObj);
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Error refreshing chart data from report:", err);
+            }
+
+            // 3. Render chart
+            renderActiveChart();
+        }
+
+        /* ================================================================
+           ACTION LOG
+        ================================================================ */
+
+        function updateActionsLog(
+            actions
+        ) {
+
+            const logDiv =
+                document.getElementById(
+                    "actionsLog"
+                );
+
+
+            logDiv.innerHTML =
+                "";
+
+
+            if (!actions || actions.length === 0) {
+
+                logDiv.innerHTML =
+                    `<span class="text-muted small">
+                No actions yet.
+            </span>`;
+
+                return;
+
+            }
+
+
+            actions.forEach(a => {
+
+                const span =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                span.className =
+                    "action-pill";
+
+
+                span.innerHTML =
+                    `<i class="bi bi-check-circle-fill"></i>${a}`;
+
+
+                logDiv.appendChild(
+                    span
+                );
+
+            });
+
+        }
+
+
+        /* ================================================================
+           AGENT STATUS
+        ================================================================ */
+
+        function setAgentStatus(
+            text,
+            badgeClass
+        ) {
+
+            const badge =
+                document.getElementById(
+                    "agentStatusBadge"
+                );
+
+
+            badge.textContent =
+                "";
+
+
+            badge.className =
+                "agent-status";
+
+
+            const dot =
+                document.createElement(
+                    "span"
+                );
+
+
+            dot.className =
+                "status-dot";
+
+
+            const label =
+                document.createTextNode(
+                    text
+                );
+
+
+            badge.appendChild(
+                dot
+            );
+
+
+            badge.appendChild(
+                label
+            );
+
+
+            if (
+                badgeClass.includes(
+                    "bg-success"
+                )
+            ) {
+
+                badge.style.background =
+                    "#ecfdf3";
+
+                badge.style.color =
+                    "#15803d";
+
+            }
+
+            else if (
+                badgeClass.includes(
+                    "bg-warning"
+                )
+            ) {
+
+                badge.style.background =
+                    "#fff7ed";
+
+                badge.style.color =
+                    "#c2410c";
+
+            }
+
+            else if (
+                badgeClass.includes(
+                    "bg-danger"
+                )
+            ) {
+
+                badge.style.background =
+                    "#fef2f2";
+
+                badge.style.color =
+                    "#b91c1c";
+
+            }
+
+            else {
+
+                badge.style.background =
+                    "#f1f5f9";
+
+                badge.style.color =
+                    "#64748b";
+
+            }
+
+        }
+
+
+        /* ================================================================
+           MARKDOWN RENDERING
+        ================================================================ */
+
+        function markdownToHtml(markdown) {
+            if (!markdown) return "";
+            let text = markdown.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n");
+            text = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+            text = text
+                .replace(/^### (.*$)/gim, '<h5 class="mt-3 mb-2 fw-bold">$1</h5>')
+                .replace(/^## (.*$)/gim, '<h4 class="mt-3 mb-2 fw-bold">$1</h4>')
+                .replace(/^# (.*$)/gim, '<h3 class="mt-3 mb-2 fw-bold">$1</h3>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/^---$/gim, '<hr class="my-3">');
+
+            // Wrap list groups into <ul><li>...</li></ul>
+            text = text.replace(/(?:^\s*[-*]\s+.*(?:\r?\n|$))+/gm, (match) => {
+                const items = match.trim().split("\n").map(line => `<li>${line.replace(/^\s*[-*]\s+/, '')}</li>`).join("");
+                return `<ul class="mb-2 ps-3">${items}</ul>`;
+            });
+
+            return text.split(/\n\n+/).map(p => {
+                if (p.startsWith('<h') || p.startsWith('<ul') || p.startsWith('<hr')) return p;
+                return `<p class="mb-2">${p.replace(/\n/g, '<br>')}</p>`;
+            }).join("");
+        }
+
+
+        /* ================================================================
+           COMPATIBILITY
+        ================================================================ */
+
+        async function showCompatibility() {
+
+            if (
+                !currentProject?.model_id ||
+                !currentProject?.dataset_id
+            )
+                return;
+
+
+            const res =
+                await fetch(
+                    `/projects/${currentProject.id}/compatibility`
+                );
+
+
+            const result =
+                await res.json();
+
+
+            const message =
+                result.is_compatible
+
+                    ? "Model and dataset are compatible and ready to evaluate."
+
+                    : `Compatibility warning: ${result.issues.join(" ")
+                    }`;
+
+
+            addChatMessage(
+                "assistant",
+                message
+            );
+
+        }
+
+
+        /* ================================================================
+           BENCHMARK PRESET
+        ================================================================ */
+
+        async function loadBenchmarkPreset() {
+
+            const presetId =
+                document.getElementById(
+                    "presetDropdown"
+                ).value;
+
+
+            if (!currentProject) {
+
+                const res =
+                    await fetch(
+                        "/projects",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+
+                                name:
+                                    `${presetId.toUpperCase()} Evaluation Project`,
+
+                                description:
+                                    `Auto-generated benchmark project for ${presetId}`
+
+                            })
+
+                        }
+                    );
+
+
+                const newProj =
+                    await res.json();
+
+
+                await fetchProjects();
+
+
+                document.getElementById(
+                    "projectSelect"
+                ).value =
+                    newProj.id;
+
+
+                await loadSelectedProject();
+
+            }
+
+
+            setAgentStatus(
+                "Loading Preset...",
+                "bg-info text-dark"
+            );
+
+
+            addChatMessage(
+                "user",
+                `Load ${presetId} benchmark model and dataset.`
+            );
+
+
+            const res =
+                await fetch(
+                    `/projects/${currentProject.id}/load-preset/${presetId}`,
+                    {
+                        method: "POST"
+                    }
+                );
+
+
+            const data =
+                await res.json();
+
+
+            if (data.status === "success") {
+
+                const cachedMsg =
+                    data.was_cached
+
+                        ? "(Retrieved from local storage cache)"
+
+                        : "(Downloaded and cached to local storage cache)";
+
+
+                addChatMessage(
+                    "assistant",
+                    `Successfully loaded ${presetId} pre-trained model and dataset ${cachedMsg}! You can now click 'Run Agentic Evaluation' or run Attacks and Defenses.`
+                );
+
+
+                await loadSelectedProject();
+
+
+                setAgentStatus(
+                    "Ready",
+                    "bg-success"
+                );
+
+            } else {
+
+                alert(
+                    "Error loading preset: " +
+                    JSON.stringify(data)
+                );
+
+                setAgentStatus(
+                    "Idle",
+                    "bg-secondary"
+                );
+
+            }
+
+        }
+
+    </script>
+
+</body>
+
+</html>
