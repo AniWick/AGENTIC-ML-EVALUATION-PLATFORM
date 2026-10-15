@@ -41,4 +41,3 @@ class OutlierHandler:
             return df_cleaned, {"method": "remove", "removed_rows_count": removed}
 
 outlier_handler = OutlierHandler()
-

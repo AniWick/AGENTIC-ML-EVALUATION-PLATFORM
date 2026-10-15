@@ -19,4 +19,3 @@ def test_load_preset_into_project():
     assert load_res["preset_id"] == "iris"
     assert load_res["model"]["framework"] == "sklearn"
     assert load_res["dataset"]["version"] == "v001"
-

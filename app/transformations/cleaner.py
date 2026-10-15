@@ -47,4 +47,3 @@ class DataCleaner:
         return df_clean, {"removed_duplicates_count": dropped}
 
 data_cleaner = DataCleaner()
-

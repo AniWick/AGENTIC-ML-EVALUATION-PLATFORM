@@ -56,4 +56,3 @@ class DataCorruption:
         return df_corrupt, {"operation": "inject_label_noise", "noise_ratio": noise_ratio, "flipped_labels_count": num_corrupt}
 
 data_corruption = DataCorruption()
-

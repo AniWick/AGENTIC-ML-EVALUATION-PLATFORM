@@ -24,4 +24,3 @@ class DataScaler:
         return df_scaled, {"method": method, "scaled_features": num_cols}
 
 data_scaler = DataScaler()
-
